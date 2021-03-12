@@ -8,9 +8,6 @@ The project features mass-data accumulation through an IoT Sensor, Warehousing a
 :stem:
 :lang: en
 :icons: font
-:awestruct-layout:base
-:toc: right
-:experimental:
 
 == Installation
 The installation is prepared for Linux systems in anaconda.sh. If you have an Windows computer just use Anaconda, download the installer from anaconda.com[anaconda website].
