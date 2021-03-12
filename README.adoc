@@ -36,3 +36,6 @@ the venv while you execute stuff in the notebook. If you do not see that kernel,
 
 You can find the documentation in the /docs directory.
 
+== Publish
+
+We could publish our Stuff as an interactive Website on https://mybinder.org/.
