@@ -1,0 +1,17 @@
+= Data Science in Techno-Socio-Economic Systems
+Matthias Baumann <matthias-baumann@outlook.com>
+v0.1: First draft
+
+The project features mass-data accumulation through an IoT Sensor, Warehousing and Processing. The future idea of usage is to integrate the measured data with additional datasets.
+
+
+:stem:
+:lang: en
+:icons: font
+:awestruct-layout:base
+:toc: right
+:experimental:
+
+
+This directory is intended as container for all documentation. Please add an
+extensive documentation.

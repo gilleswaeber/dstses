@@ -1,0 +1,23 @@
+= Data Science in Techno-Socio-Economic Systems
+Matthias Baumann <matthias-baumann@outlook.com>
+v0.1: First draft
+
+The project features mass-data accumulation through an IoT Sensor, Warehousing and Processing. The future idea of usage is to integrate the measured data with additional datasets.
+
+
+:stem:
+:lang: en
+:icons: font
+:awestruct-layout:base
+:toc: right
+:experimental:
+
+
+== Jupiter
+
+The system contains an image that automatically installs jupiter and runs it as soon as you start the container. So you can benefit from the http server to edit your files.
+The Image is build in three layers
+
+1. Python application layer (Jupiter, other libs)
+2. Miniconda 3 (package mgr)
+3. NVIDIA CUDA + OpenGL (we want to have some power here!)

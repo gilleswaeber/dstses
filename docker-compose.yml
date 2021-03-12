@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  jupiter:
+    build:
+      context: .
+      dockerfile: src/docker/jupiter/DOCKERFILE
+    ports:
+    - "8888:8888"
+    command: "/bin/bash -c 'jupyter notebook --allow-root'"
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+    volumes:
+    - "./src/workbooks:/home/jovyan/work:rw"

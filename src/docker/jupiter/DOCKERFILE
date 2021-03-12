@@ -1,0 +1,216 @@
+FROM jupyter/minimal-notebook
+
+MAINTAINER Matthias Baumann
+
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV PATH /opt/conda/bin:$PATH
+ENV NCCL_VERSION 2.8.4
+
+USER root
+
+# Install CUDA from NVIDIA Cuda Container - NVIDIA EULA APPLIES
+# Taken from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.2.0/ubuntu20.04-x86_64/devel/Dockerfile
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gnupg2 curl ca-certificates && \
+    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/7fa2af80.pub | apt-key add - && \
+    echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64 /" > /etc/apt/sources.list.d/cuda.list && \
+    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list && \
+    apt-get purge --autoremove -y curl \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CUDA_VERSION 11.2.0
+
+# For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cuda-cudart-11-2=11.2.72-1 \
+    cuda-compat-11-2 \
+    && ln -s cuda-11.2 /usr/local/cuda && \
+    rm -rf /var/lib/apt/lists/*
+
+# Required for nvidia-docker v1
+RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf \
+    && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf
+
+ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
+
+# nvidia-container-runtime
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+ENV NVIDIA_REQUIRE_CUDA "cuda>=11.2 brand=tesla,driver>=418,driver<419 brand=tesla,driver>=440,driver<441 driver>=450,driver<451"
+
+
+ENV NCCL_VERSION 2.8.4
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libtinfo5 libncursesw5 \
+    cuda-cudart-dev-11-2=11.2.72-1 \
+    cuda-command-line-tools-11-2=11.2.0-1 \
+    cuda-minimal-build-11-2=11.2.0-1 \
+    cuda-libraries-dev-11-2=11.2.0-1 \
+    cuda-nvml-dev-11-2=11.2.67-1 \
+    libnpp-dev-11-2=11.2.1.68-1 \
+    libnccl-dev=2.8.4-1+cuda11.2 \
+    libcublas-dev-11-2=11.3.1.68-1 \
+    libcusparse-dev-11-2=11.3.1.68-1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# apt from auto upgrading the cublas package. See https://gitlab.com/nvidia/container-images/cuda/-/issues/88
+RUN apt-mark hold libcublas-dev-11-2 libnccl-dev
+ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
+
+# Install Datascience Stuff incl. Julia + R
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
+# Julia installation
+# Default values can be overridden at build time
+# (ARGS are in lower case to distinguish them from ENV)
+# Check https://julialang.org/downloads/
+ARG julia_version="1.5.3"
+# SHA256 checksum
+ARG julia_checksum="f190c938dd6fed97021953240523c9db448ec0a6760b574afd4e9924ab5615f1"
+
+# R pre-requisites
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    fonts-dejavu \
+    gfortran \
+    gcc \
+    unixodbc \
+    unixodbc-dev \
+    r-cran-rodbc \
+    gfortran \
+    gcc && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Julia dependencies
+# install Julia packages in /opt/julia instead of $HOME
+ENV JULIA_DEPOT_PATH=/opt/julia \
+    JULIA_PKGDIR=/opt/julia \
+    JULIA_VERSION="${julia_version}"
+
+WORKDIR /tmp
+
+# hadolint ignore=SC2046
+RUN mkdir "/opt/julia-${JULIA_VERSION}" && \
+    wget -q https://julialang-s3.julialang.org/bin/linux/x64/$(echo "${JULIA_VERSION}" | cut -d. -f 1,2)"/julia-${JULIA_VERSION}-linux-x86_64.tar.gz" && \
+    echo "${julia_checksum} *julia-${JULIA_VERSION}-linux-x86_64.tar.gz" | sha256sum -c - && \
+    tar xzf "julia-${JULIA_VERSION}-linux-x86_64.tar.gz" -C "/opt/julia-${JULIA_VERSION}" --strip-components=1 && \
+    rm "/tmp/julia-${JULIA_VERSION}-linux-x86_64.tar.gz"
+RUN ln -fs /opt/julia-*/bin/julia /usr/local/bin/julia
+
+# Show Julia where conda libraries are \
+RUN mkdir /etc/julia && \
+    echo "push!(Libdl.DL_LOAD_PATH, \"$CONDA_DIR/lib\")" >> /etc/julia/juliarc.jl && \
+    # Create JULIA_PKGDIR \
+    mkdir "${JULIA_PKGDIR}" && \
+    chown "${NB_USER}" "${JULIA_PKGDIR}" && \
+    fix-permissions "${JULIA_PKGDIR}"
+
+USER $NB_UID
+
+# R packages including IRKernel which gets installed globally.
+RUN conda install --quiet --yes \
+    'r-base=4.0.3'  \
+    'r-caret=6.0*' \
+    'r-crayon=1.4*' \
+    'r-devtools=2.3*' \
+    'r-forecast=8.13*' \
+    'r-hexbin=1.28*' \
+    'r-htmltools=0.5*' \
+    'r-htmlwidgets=1.5*' \
+    'r-irkernel=1.1*' \
+    'r-nycflights13=1.0*' \
+    'r-randomforest=4.6*' \
+    'r-rcurl=1.98*' \
+    'r-rmarkdown=2.7*' \
+    'r-rsqlite=2.2*' \
+    'r-shiny=1.6*' \
+    'r-tidyverse=1.3*' \
+    'rpy2=3.4*' && \
+    conda clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+# Add Julia packages. Only add HDF5 if this is not a test-only build since
+# it takes roughly half the entire build time of all of the images on Travis
+# to add this one package and often causes Travis to timeout.
+#
+# Install IJulia as jovyan and then move the kernelspec out
+# to the system share location. Avoids problems with runtime UID change not
+# taking effect properly on the .local folder in the jovyan home dir.
+RUN julia -e 'import Pkg; Pkg.update()' && \
+    (test $TEST_ONLY_BUILD || julia -e 'import Pkg; Pkg.add("HDF5")') && \
+    julia -e "using Pkg; pkg\"add IJulia\"; pkg\"precompile\"" && \
+    # move kernelspec out of home \
+    mv "${HOME}/.local/share/jupyter/kernels/julia"* "${CONDA_DIR}/share/jupyter/kernels/" && \
+    chmod -R go+rx "${CONDA_DIR}/share/jupyter" && \
+    rm -rf "${HOME}/.local" && \
+    fix-permissions "${JULIA_PKGDIR}" "${CONDA_DIR}/share/jupyter"
+
+WORKDIR $HOME
+
+USER root
+
+# ffmpeg for matplotlib anim & dvipng+cm-super for latex labels
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg dvipng cm-super && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+USER $NB_UID
+
+# Install Python 3 packages
+RUN conda install --quiet --yes \
+    'beautifulsoup4=4.9.*' \
+    'conda-forge::blas=*=openblas' \
+    'bokeh=2.2.*' \
+    'bottleneck=1.3.*' \
+    'cloudpickle=1.6.*' \
+    'cython=0.29.*' \
+    'dask=2021.2.*' \
+    'dill=0.3.*' \
+    'h5py=3.1.*' \
+    'ipywidgets=7.6.*' \
+    'ipympl=0.6.*'\
+    'matplotlib-base=3.3.*' \
+    'numba=0.52.*' \
+    'numexpr=2.7.*' \
+    'pandas=1.2.*' \
+    'patsy=0.5.*' \
+    'protobuf=3.15.*' \
+    'pytables=3.6.*' \
+    'scikit-image=0.18.*' \
+    'scikit-learn=0.24.*' \
+    'scipy=1.6.*' \
+    'seaborn=0.11.*' \
+    'sqlalchemy=1.3.*' \
+    'statsmodels=0.12.*' \
+    'sympy=1.7.*' \
+    'vincent=0.4.*' \
+    'widgetsnbextension=3.5.*'\
+    'xlrd=2.0.*' && \
+    conda clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+# Install facets which does not have a pip or conda package at the moment
+WORKDIR /tmp
+RUN git clone https://github.com/PAIR-code/facets.git && \
+    jupyter nbextension install facets/facets-dist/ --sys-prefix && \
+    rm -rf /tmp/facets && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+# Import matplotlib the first time to build the font cache.
+ENV XDG_CACHE_HOME="/home/${NB_USER}/.cache/"
+
+RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot" && \
+    fix-permissions "/home/${NB_USER}"
+
+USER $NB_UID
+
+WORKDIR $HOME
+
+ADD src/docker/jupiter/build.sh /app/
+RUN /bin/bash /app/build.sh
