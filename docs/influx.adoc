@@ -1,0 +1,49 @@
+= Influx Data
+Matthias Baumann <matthias-baumann@outlook.com>
+v0.1: First draft
+
+:stem:
+:lang: en
+:icons: font
+:awestruct-layout:base
+:toc: right
+:experimental:
+
+== Influx Architecture
+* Bucket: actual_weather_data
+** Measurement: humidity
+*** Field: percentage (percent value of humidity)
+** Measurement: temparature 
+*** Field: celsius (°C)
+** Measurement: pm1
+*** Field: mugpercubic
+** Measurement: pm10
+*** Field: mugpercubic
+** Measurement: pm25
+*** Field: mugpercubic
+
+== Influx Data Explorer
+WARN: The data explorer seems sometimes not to show data until 5min after aquisition and it always aggregates the data with the selected aggregation function, so be aware to select correct consolidation function before executing the query.
+
+== Influx CLI
+Download influx db command line utility (single executable without dependencies). From https://docs.influxdata.com/influxdb/v2.0/get-started/
+
+Then chmod if Linux
+
+Then go on online admin console > Data > Tokens > Generate Token > All Access Token > Your Name > Ok > Copy Token into command below
+
+++++
+./influx config create --config-name cloud  --host-url https://eu-central-1-1.aws.cloud2.influxdata.com --org b8cabab6f46931b4 --token <token> --active
+++++
+
+CLI is now initialized and you can manage Influx from there. For more information see https://docs.influxdata.com/influxdb/cloud/reference/cli/influx/
+
+Often used:
+https://docs.influxdata.com/influxdb/cloud/reference/cli/influx/delete/
+
+== Client Libraries
+
+The client libraries are documented on: https://docs.influxdata.com/influxdb/v2.0/tools/client-libraries/
+
+== Crontab
+Currently, the crontab is set to one hour. I'm currently in discussion with sachid what would be an appropriate timing and sampling density.
