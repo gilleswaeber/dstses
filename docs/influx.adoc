@@ -23,7 +23,7 @@ v0.1: First draft
 *** Field: mugpercubic
 
 == Influx Data Explorer
-WARN: The data explorer seems sometimes not to show data until 5min after aquisition and it always aggregates the data with the selected aggregation function, so be aware to select correct consolidation function before executing the query.
+WARNING: The data explorer seems sometimes not to show data until 5min after aquisition and it always aggregates the data with the selected aggregation function, so be aware to select correct consolidation function before executing the query.
 
 == Influx CLI
 Download influx db command line utility (single executable without dependencies). From https://docs.influxdata.com/influxdb/v2.0/get-started/
