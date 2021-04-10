@@ -25,6 +25,7 @@ v0.1: First draft
 *** Field nc10:  Float (2)
 
 whereas
+
 * Float (3) [1, 100] with 3 places after comma
 * Float (2) [1, 200] with 2 places after comma
 
