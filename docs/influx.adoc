@@ -11,16 +11,22 @@ v0.1: First draft
 
 == Influx Architecture
 * Bucket: actual_weather_data
-** Measurement: humidity
-*** Field: percentage (percent value of humidity)
-** Measurement: temparature 
-*** Field: celsius (°C)
-** Measurement: pm1
-*** Field: mugpercubic
-** Measurement: pm10
-*** Field: mugpercubic
-** Measurement: pm25
-*** Field: mugpercubic
+** Measurement: weather
+*** Field temparature: Float (2)
+*** Field humidity: Float (2)
+** Measurement: pollution
+*** Field pm1: Float (3)
+*** Field nc1: Float (2)
+*** Field pm2.5: Float (3)
+*** Field nc2.5: Float (2)
+*** Field pm4.0: Float (3)
+*** Field nc4.0: Float (2)
+*** Field pm10:  Float (3)
+*** Field nc10:  Float (2)
+
+whereas
+* Float (3) [1, 100] with 3 places after comma
+* Float (2) [1, 200] with 2 places after comma
 
 == Influx Data Explorer
 WARNING: The data explorer seems sometimes not to show data until 5min after aquisition and it always aggregates the data with the selected aggregation function, so be aware to select correct consolidation function before executing the query.
