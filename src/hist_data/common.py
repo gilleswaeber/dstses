@@ -43,8 +43,8 @@ def upload_influx_db(con: Connection, table: str):
 
         (
             f"""'weather,place={p} ' || SUBSTR(""" +
-            (f"""IFNULL(',temperature=' || temperature."{p}", '') || """ if p in places_temperature else '') +
-            (f"""IFNULL(',rainfall=' || rainfall."{p}", '') || """ if p in places_rainfall else '') +
+            (f"""IFNULL(',temperature=' || "{p}.Temperature", '') || """ if p in places_temperature else '') +
+            (f"""IFNULL(',rainfall=' || "{p}.Rainfall", '') || """ if p in places_rainfall else '') +
             f"""'', 2) || STRFTIME(' %s000000000', date)"""
             if p in places_temperature or p in places_rainfall else """''"""
         )
