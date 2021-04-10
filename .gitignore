@@ -2,3 +2,5 @@
 /.idea
 identifier.sqlite
 __pycache__
+
+opendata-dataset/
