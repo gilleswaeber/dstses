@@ -2,3 +2,4 @@ pandas
 requests
 influxdb-client
 tqdm
+sqlalchemy
