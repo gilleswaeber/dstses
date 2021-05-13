@@ -5,3 +5,4 @@ __pycache__
 
 opendata-dataset/
 venv/
+dockerenv/
