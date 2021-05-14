@@ -75,14 +75,13 @@ class Logger:
 				remaining_length = Logger.__console_width - len(line_pre)
 				if state == "begin" and stream is stdout:
 					Logger.__progress = msg
-					out = "".join([" "] * remaining_length)
-					print(f'{line_pre}{Logger.__progress}{out}', file=stream, end="", flush=True)
+					print(f'{line_pre}{Logger.__progress}', file=stream, end="", flush=True)
 				elif state == "update" and stream is stdout:
-					width = remaining_length - len(msg)
+					width = remaining_length - len(Logger.__progress) - len(msg)
 					out = f'{"".join([" "] * width)}{msg}'
 					print(f'\r{line_pre}{Logger.__progress}{out}', file=stream, end="", flush=True)
 				elif state == "end" and stream is stdout:
-					width = remaining_length - len(msg)
+					width = remaining_length - len(Logger.__progress) - len(msg)
 					out = f'{"".join([" "] * width)}{msg}'
 					print(f"\r{line_pre}{Logger.__progress}{out}", file=stream, flush=True)
 					Logger.__progress = None

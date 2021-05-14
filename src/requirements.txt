@@ -3,3 +3,6 @@ requests
 influxdb-client
 tqdm
 sqlalchemy
+sktime
+numpy
+pmdarima
