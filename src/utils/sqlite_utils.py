@@ -2,7 +2,7 @@ import sqlalchemy
 import pandas as pd
 from pathlib import Path
 
-db_file = Path(__file__).parent.parent.absolute() / "hist_data/hist_data.sqlite"
+db_file = Path(__file__).parent.parent.parent.absolute() / "hist_data/data/hist_data.sqlite"
 headers_nabel = ["PM10", "PM2.5", "Temperature", "Rainfall"]
 headers_zurich = ["PM10", "PM2.5", "Humidity", "Temperature", "Pressure"]
 
@@ -25,4 +25,4 @@ def get_time_series(engine: sqlalchemy.engine.Connection, dataset: str, location
 	prefixed = [f'"{location}.{x}"' for x in (headers_nabel if dataset == 'nabel' else headers_zurich)]
 	headers = ",".join(['"date"'] + prefixed)
 	query = f'SELECT {headers} FROM {dataset};'
-	return pd.read_sql_query(query, engine), prefixed
+	return pd.read_sql_query(query, engine)

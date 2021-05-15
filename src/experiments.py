@@ -16,11 +16,11 @@ logger = Logger("Experiment")
 timer_script = Timer()
 
 
-def get_labels(labels: list, filters: list, header_list: list) -> list:
+def get_labels(labels: list, filters: list) -> list:
 	out = []
 	for f in filters:
 		for lbl in labels:
-			if f in header_list[lbl]:
+			if f in lbl:
 				out.append(lbl)
 	
 	return list(set(out))
@@ -30,7 +30,7 @@ def load_dataset(dataset: str, location: str) -> (pd.Series, pd.DataFrame):
 	logger.info_begin("Loading dataset...")
 	timer = Timer()
 	engine = get_engine().connect()
-	timeseries, header_list = get_time_series(engine, dataset, location)
+	timeseries = get_time_series(engine, dataset, location)
 	engine.close()
 	
 	# select only intervals where all values are available
@@ -41,22 +41,22 @@ def load_dataset(dataset: str, location: str) -> (pd.Series, pd.DataFrame):
 	timeseries = timeseries.drop(labels=["date"], axis=1)
 	logger.info_end(f'Done in {timer}')
 	
-	return timeseries, header_list
+	return timeseries
 
 
-def transform_data(timeseries: pd.DataFrame, header_list) -> (pd.Series, pd.DataFrame):
+def transform_data(timeseries: pd.DataFrame) -> (pd.Series, pd.DataFrame):
 	logger.info_begin("Transforming data...")
 	timer = Timer()
 	# create x and y from the dataset (exclude date and y from x)
-	y = timeseries[map(header_list.index, filter(lambda v: "PM10" in v, header_list))].squeeze()
-	x = timeseries.drop(labels=get_labels(timeseries.columns, ["PM10", "PM2.5", "PM1"], header_list), axis=1, errors='ignore')
+	y = timeseries[filter(lambda v: "PM10" in v, timeseries.columns)].squeeze()
+	x = timeseries.drop(labels=get_labels(timeseries.columns, ["PM10", "PM2.5", "PM1"]), axis=1, errors='ignore')
 	logger.info_end(f'Done in {timer}')
 	return y, x
 
 
 def impute_missing_values(timeseries: pd.DataFrame):
 	imputer = SimpleImputer(strategy='mean')
-	imputed_timeseries = pd.DataFrame(imputer.fit_transform(timeseries))
+	imputed_timeseries = pd.DataFrame(imputer.fit_transform(timeseries), columns=timeseries.columns)
 	return imputed_timeseries
 
 
@@ -85,9 +85,9 @@ def eval_model(model, y_test, x_test) -> float:
 
 def main():
 	logger.info("Running script...")
-	timeseries, header_list = load_dataset("zurich", "Zch_Stampfenbachstrasse")
+	timeseries = load_dataset("zurich", "Zch_Stampfenbachstrasse")
 	imputed_timeseries = impute_missing_values(timeseries)
-	y, x = transform_data(imputed_timeseries, header_list)
+	y, x = transform_data(imputed_timeseries)
 	y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
 	model = train_model_autoarima(y_train, x_train)
 	score = eval_model(model, y_test, x_test)
