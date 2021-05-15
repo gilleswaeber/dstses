@@ -3,7 +3,7 @@ from sktime.utils.plotting import plot_series
 from sktime.datasets import load_airline, load_uschange, load_longley
 from sktime.forecasting.model_selection import temporal_train_test_split
 from utils.logger import Logger
-from models import sqlite_utils
+from utils import sqlite_utils
 import sqlalchemy
 import pandas as pd
 import numpy as np
