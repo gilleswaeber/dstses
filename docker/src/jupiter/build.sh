@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-echo "Installing Miniconda3, if you do not want this to happen, modify the file."
-read -r
-
-wget 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.shy'
-
-bash ./Miniconda3-latest-Linux-x86_64.shy
-
 conda --version
 
 conda init bash
@@ -21,6 +14,10 @@ conda install -c conda-forge pytorch
 conda install numpy
 conda install pandas
 conda install -c anaconda ipykernel
+conda install -c conda-forge/label/cf202003 ciso8601
+conda install pip
+conda init bash
+pip install influxdb-client
 
 # python -m ipykernel install --user --name=stes
 

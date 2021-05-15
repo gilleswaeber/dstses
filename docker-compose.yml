@@ -4,7 +4,7 @@ services:
   jupiter:
     build:
       context: .
-      dockerfile: src/docker/jupiter/DOCKERFILE
+      dockerfile: docker/src/jupiter/DOCKERFILE
     ports:
     - "8888:8888"
     command: "/bin/bash -c 'jupyter notebook --allow-root'"
