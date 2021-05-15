@@ -9,6 +9,20 @@ The project features mass-data accumulation through an IoT Sensor, Warehousing a
 :lang: en
 :icons: font
 
+
+== Directory Structure
+|===
+| Directory | Description
+| docker | Docker container used as virtual development environment
+| docs | Various documentations related to components/plans
+| hist_data | Historical data download/curation for having training data for prediction projects
+| opendata_converter | Converter used to convert hist_data to better format
+| papers | Various Papers related to prediction models
+| sensor | The sensor software project used to acquire sensor data
+| src | The source code of the overall prediction software
+| workbooks | Various workbooks with experiments
+|===
+
 == Installation
 The installation is prepared for Linux systems in anaconda.sh. If you have an Windows computer just use Anaconda, download the installer from anaconda.com[anaconda website].
 

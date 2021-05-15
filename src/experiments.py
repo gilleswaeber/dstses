@@ -5,9 +5,9 @@ from sktime.performance_metrics.forecasting import mape_loss
 
 from sklearn.impute import SimpleImputer
 
-from opendata_converter.logger import Logger
-from models_linus.timer import Timer
-from models_linus.sqlite_utils import get_engine, get_time_series
+from utils.logger import Logger
+from utils.timer import Timer
+from utils.sqlite_utils import get_engine, get_time_series
 
 import numpy as np
 import pandas as pd

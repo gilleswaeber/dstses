@@ -14,7 +14,7 @@ bucket = "BUCKET_NAME"
 ```
 """
 
-HIST_DATA_SQLITE_DB = Path(__file__).parent.absolute() / 'hist_data.sqlite'
+HIST_DATA_SQLITE_DB = Path(__file__).parent.parent.parent.absolute() / "data" / 'hist_data.sqlite'
 
 
 def get_engine() -> Connection:

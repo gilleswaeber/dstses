@@ -2,12 +2,12 @@ from sktime.forecasting.naive import NaiveForecaster
 from sktime.utils.plotting import plot_series
 from sktime.datasets import load_airline, load_uschange, load_longley
 from sktime.forecasting.model_selection import temporal_train_test_split
-from opendata_converter.logger import Logger
-from models_linus import sqlite_utils
+from utils.logger import Logger
+from models import sqlite_utils
 import sqlalchemy
 import pandas as pd
 import numpy as np
-from models_linus.timer import Timer
+from utils.timer import Timer
 
 logger: Logger = Logger(module_name="Model 1")
 script_timer = Timer()

@@ -1,8 +1,11 @@
 *_local.py
-/.idea
 identifier.sqlite
 __pycache__
 
 opendata-dataset/
 venv/
 dockerenv/
+
+# IntelliJ Project
+*.iml
+/.idea
