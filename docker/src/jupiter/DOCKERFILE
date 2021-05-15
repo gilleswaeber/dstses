@@ -212,7 +212,7 @@ USER $NB_UID
 
 WORKDIR $HOME
 
-ADD src/docker/jupiter/build.sh /app/
+ADD docker/src/jupiter/build.sh /app/
 RUN /bin/bash /app/build.sh
 
 ADD src/requirements.txt ./requirements.txt
