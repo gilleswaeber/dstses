@@ -1,6 +1,6 @@
 pandas
 requests
-influxdb-client
+influxdb
 tqdm
 sqlalchemy
 sktime

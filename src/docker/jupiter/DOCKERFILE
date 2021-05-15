@@ -214,3 +214,6 @@ WORKDIR $HOME
 
 ADD src/docker/jupiter/build.sh /app/
 RUN /bin/bash /app/build.sh
+
+ADD src/requirements.txt ./requirements.txt
+RUN conda install --quiet --yes --file ./requirements.txt
