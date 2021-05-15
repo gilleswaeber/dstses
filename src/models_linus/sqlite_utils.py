@@ -25,4 +25,4 @@ def get_time_series(engine: sqlalchemy.engine.Connection, dataset: str, location
 	prefixed = [f'"{location}.{x}"' for x in (headers_nabel if dataset == 'nabel' else headers_zurich)]
 	headers = ",".join(['"date"'] + prefixed)
 	query = f'SELECT {headers} FROM {dataset};'
-	return pd.read_sql_query(query, engine)
+	return pd.read_sql_query(query, engine), prefixed

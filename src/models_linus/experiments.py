@@ -16,21 +16,21 @@ logger = Logger("Experiment")
 timer_script = Timer()
 
 
-def get_labels(labels: list, filters: list) -> list:
+def get_labels(labels: list, filters: list, header_list: list) -> list:
 	out = []
 	for f in filters:
 		for lbl in labels:
-			if f in lbl:
+			if f in header_list[lbl]:
 				out.append(lbl)
 	
-	return out
+	return list(set(out))
 
 
 def load_dataset(dataset: str, location: str) -> (pd.Series, pd.DataFrame):
 	logger.info_begin("Loading dataset...")
 	timer = Timer()
 	engine = get_engine().connect()
-	timeseries = get_time_series(engine, dataset, location)
+	timeseries, header_list = get_time_series(engine, dataset, location)
 	engine.close()
 	
 	# select only intervals where all values are available
@@ -41,15 +41,15 @@ def load_dataset(dataset: str, location: str) -> (pd.Series, pd.DataFrame):
 	timeseries = timeseries.drop(labels=["date"], axis=1)
 	logger.info_end(f'Done in {timer}')
 	
-	return timeseries
+	return timeseries, header_list
 
 
-def transform_data(timeseries: pd.DataFrame) -> (pd.Series, pd.DataFrame):
+def transform_data(timeseries: pd.DataFrame, header_list) -> (pd.Series, pd.DataFrame):
 	logger.info_begin("Transforming data...")
 	timer = Timer()
 	# create x and y from the dataset (exclude date and y from x)
-	y = timeseries[filter(lambda v: "PM10" in v, timeseries.columns)].squeeze()
-	x = timeseries.drop(labels=get_labels(timeseries.columns, ["PM10", "PM2.5", "PM1"]), axis=1, errors='ignore')
+	y = timeseries[map(header_list.index, filter(lambda v: "PM10" in v, header_list))].squeeze()
+	x = timeseries.drop(labels=get_labels(timeseries.columns, ["PM10", "PM2.5", "PM1"], header_list), axis=1, errors='ignore')
 	logger.info_end(f'Done in {timer}')
 	return y, x
 
@@ -75,7 +75,8 @@ def eval_model(model, y_test, x_test) -> float:
 	logger.info_begin("Measuring performance metrics...")
 	timer = Timer()
 	logger.info_update("Computing")
-	y_pred = model.predict(x_test)
+	fh = np.arange(1, x_test.shape[0] + 1)
+	y_pred = model.predict(X=x_test, fh=fh)
 	logger.info_update("Scoring")
 	error = mape_loss(y_test, y_pred)
 	logger.info_end(f'Done in {timer}')
@@ -84,9 +85,9 @@ def eval_model(model, y_test, x_test) -> float:
 
 def main():
 	logger.info("Running script...")
-	timeseries = load_dataset("zurich", "Zch_Stampfenbachstrasse")
+	timeseries, header_list = load_dataset("zurich", "Zch_Stampfenbachstrasse")
 	imputed_timeseries = impute_missing_values(timeseries)
-	y, x = transform_data(imputed_timeseries)
+	y, x = transform_data(imputed_timeseries, header_list)
 	y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
 	model = train_model_autoarima(y_train, x_train)
 	score = eval_model(model, y_test, x_test)
