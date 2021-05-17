@@ -11,12 +11,13 @@ source ~/.bashrc
 conda install anaconda-client
 conda install conda-build
 conda install -c conda-forge pytorch
-conda install numpy
+conda install numpy==1.19.5
 conda install pandas
 conda install -c anaconda ipykernel
 conda install -c conda-forge/label/cf202003 ciso8601
 conda install pip
 conda init bash
+conda install sktime
 pip install influxdb-client
 
 # python -m ipykernel install --user --name=stes

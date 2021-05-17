@@ -11,4 +11,11 @@ services:
     environment:
       JUPYTER_ENABLE_LAB: "yes"
     volumes:
-    - "./src/workbooks:/home/jovyan/work:rw"
+      - "./src/workbooks:/home/jovyan/work:rw"
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu, utility]
