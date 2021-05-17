@@ -16,6 +16,7 @@ from configparser import ConfigParser
 from pathlib import Path
 from adapters.data_adapter import IDataAdapter
 from adapters.hist_data_adapter import HistDataAdapter
+from models.lstm import LSTMModel, train_lstm_model
 import os
 
 logger: Logger = Logger(module_name="Model 1")
@@ -77,10 +78,13 @@ def main():
 	# read and prepare dataset for training
 	df_timeseries_complete = load_dataset("test_adapter", config)
 	df_timestamps, df_input, df_output = select_columns_3(df_timeseries_complete[-250:], config, "preprocessing")
-	
 	# testing...
-	plt.plot(df_input)
-	plt.plot(df_output)
+	model = train_lstm_model(y=df_output, x=df_input, fh=10)
+	y_pred = model.predict(x=df_input)
+	
+	print(y_pred)
+	
+	plt.plot(y_pred)
 	plt.show()
 	
 	logger.info(f"Script completed in {timer_main}.")
