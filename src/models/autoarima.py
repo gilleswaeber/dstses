@@ -1,4 +1,3 @@
-from sktime.utils.plotting import plot_series
 from sktime.forecasting.model_selection import temporal_train_test_split
 from sktime.forecasting.arima import AutoARIMA
 from sktime.performance_metrics.forecasting import mape_loss
@@ -7,7 +6,6 @@ from sklearn.impute import SimpleImputer
 
 from utils.logger import Logger
 from utils.timer import Timer
-from utils.sqlite_utils import get_engine, get_time_series
 
 import numpy as np
 import pandas as pd
@@ -26,13 +24,10 @@ def get_labels(labels: list, filters: list) -> list:
 	return list(set(out))
 
 
-def load_dataset(dataset: str, location: str) -> (pd.Series, pd.DataFrame):
+def load_dataset(timeseries: pd.DataFrame) -> (pd.Series, pd.DataFrame):
 	logger.info_begin("Loading dataset...")
 	timer = Timer()
-	engine = get_engine().connect()
-	timeseries = get_time_series(engine, dataset, location)
-	engine.close()
-	
+
 	# select only intervals where all values are available
 	fvi = np.max([timeseries[col].first_valid_index() for col in timeseries.columns])
 	drop_indices = np.arange(0, fvi+1)
@@ -83,9 +78,10 @@ def eval_model(model, y_test, x_test) -> float:
 	return error
 
 
-def main():
+def prepare_model(timeseries: pd.DataFrame):
 	logger.info("Running script...")
-	timeseries = load_dataset("zurich", "Zch_Stampfenbachstrasse")
+
+	timeseries = load_dataset(timeseries)
 	imputed_timeseries = impute_missing_values(timeseries)
 	y, x = transform_data(imputed_timeseries)
 	y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
@@ -93,7 +89,3 @@ def main():
 	score = eval_model(model, y_test, x_test)
 	logger.info(f"Score of model: {score:.04f}")
 	logger.info(f"Completed script in {timer_script}")
-	
-
-if __name__ == '__main__':
-	main()
