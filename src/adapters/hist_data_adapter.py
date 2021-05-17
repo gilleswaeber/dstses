@@ -3,9 +3,6 @@ from utils import logger
 import pandas as pd
 from adapters import data_adapter
 from pathlib import Path
-import pandas
-from datetime import datetime
-from itertools import chain
 import sqlalchemy
 from sqlalchemy.engine import Connection
 from configparser import ConfigParser
@@ -22,11 +19,11 @@ class HistDataAdapter(data_adapter.IDataAdapter):
 	headers_nabel = ["PM10", "PM2.5", "Temperature", "Rainfall"]
 	headers_zurich = ["PM10", "PM2.5", "Humidity", "Temperature", "Pressure"]
 
-	def __init__(self, log: logger.Logger, config: ConfigParser, name, dataset = None, location = None):
-		super().__init__(log, config)
+	def __init__(self, config: ConfigParser, name, dataset = None, location = None):
+		super().__init__(logger.Logger(module_name=f"hist data adapter '{name}'"), config)
 		self.name = name
-		self.dataset = config["sql_adapter"][name]["dataset"] if dataset is None else dataset
-		self.location = config["sql_adapter"][name]["location"] if location is None else location
+		self.dataset = config[name]["dataset"] if dataset is None else dataset
+		self.location = config[name]["location"] if location is None else location
 
 	def get_engine(self) -> sqlalchemy.engine.Connection:
 		"""
@@ -53,9 +50,9 @@ class HistDataAdapter(data_adapter.IDataAdapter):
 		return r.first() is not None
 
 	def get_data(self):
-		self.logger.info_begin(f"dataloader {self.name} loading sqlite db")
+		self.logger.info_begin(f"Loading sqlite...")
 		with self.get_engine().connect() as con:
 			assert self.table_exists(self.dataset, con)
 			table = self.get_time_series(con, self.dataset, self.location)
-			self.logger.info_end(f"dataloader {self.name} loading sqlite db")
+			self.logger.info_end(f"done")
 			return table

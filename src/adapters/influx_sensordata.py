@@ -4,6 +4,7 @@ from influxdb_client import InfluxDBClient
 
 from adapters import data_adapter
 from utils import logger
+from pathlib import Path
 
 """
 	Loads the influx db server data and fills the data into the dataframe.
@@ -22,14 +23,16 @@ from utils import logger
 
 class InfluxSensorData(data_adapter.IDataAdapter):
 
-	def __init__(self, logger: logger.Logger, config: ConfigParser, name):
-		super().__init__(logger, config)
+	def __init__(self, config: ConfigParser, name):
+		super().__init__(logger.Logger(module_name=f"influx data adapter '{name}'"), config)
 		self.name = name
-		self.bucket = config["influx"][name]["bucket"]
-		self.start = config["influx"][name].get("start", "-30d")
+		self.bucket = config[name]["bucket"]
+		self.start = config[name].get("start", "-30d")
 
 	def get_data(self):
-		with InfluxDBClient.from_config_file(self.config["influx"]["config"]) as client:
+		with InfluxDBClient.from_config_file(
+				str(Path(self.config["resources_path"]) / self.config["influx"]["config"])
+		) as client:
 			query = client.query_api()
 
 			return query.query_data_frame(f'from(bucket:"{self.bucket}")'

@@ -12,9 +12,15 @@ from utils.logger import Logger
 from utils.timer import Timer
 from preprocessing.column_selector import select_columns_2, select_columns_3
 from preprocessing.moving_average import moving_average
+from configparser import ConfigParser
+from pathlib import Path
+from adapters.data_adapter import IDataAdapter
+from adapters.hist_data_adapter import HistDataAdapter
+import os
 
 logger: Logger = Logger(module_name="Model 1")
 script_timer = Timer()
+CONFIG_FILE = Path(os.getenv("FILE_PATH", __file__)).parent.parent.absolute() / "resources" / "config.ini"
 # structure of time series: rows: instances, cols: variables, depth: series of values
 
 
@@ -31,7 +37,7 @@ def print_header() -> None:
 	return
 
 
-def load_dataset(dataset: str, location: str) -> pd.DataFrame:
+def load_dataset(name: str, config: ConfigParser) -> pd.DataFrame:
 	"""
 		Loads a dataset from the database. A dataset consists of exactly 1 timeseries taken from
 		exactly 1 measuring station. It is represented by a table with a column for every variable
@@ -51,12 +57,10 @@ def load_dataset(dataset: str, location: str) -> pd.DataFrame:
 	"""
 	logger.info_begin("Loading dataset...")
 	timer = Timer()
-	
-	# get the db engine and connect to the database
-	engine = sqlite_utils.get_engine().connect()
-	
+
+	adapter : IDataAdapter = HistDataAdapter(config, name)
 	# read the dataframe from the database
-	df: pd.DataFrame = sqlite_utils.get_time_series(engine=engine, dataset=dataset, location=location)
+	df: pd.DataFrame = adapter.get_data()
 	
 	logger.info_end(f"Done in {timer}")
 	return df
@@ -64,9 +68,13 @@ def load_dataset(dataset: str, location: str) -> pd.DataFrame:
 def main():
 	print_header()
 	timer_main = Timer()
+
+	config = ConfigParser()
+	config.read(str(CONFIG_FILE))
+	config['DEFAULT']['resources_path'] = str(Path(CONFIG_FILE).parent.absolute())
+
 	
 	# define some variables for use in this function
-	dataset = 'zurich'
 	location = 'Zch_Stampfenbachstrasse'
 	measurements_input = ['Humidity', 'Temperature', 'Pressure']
 	measurements_output = ['PM10']
@@ -75,7 +83,7 @@ def main():
 	col_names_output = [f'{location}.{v_name}' for v_name in measurements_output]
 	
 	# read and prepare dataset for training
-	df_timeseries_complete, headers = load_dataset(dataset, location)
+	df_timeseries_complete = load_dataset("test_adapter", config)
 	df_timestamps, df_input, df_output = select_columns_3(df_timeseries_complete[-250:], col_names_timestamp, col_names_input, col_names_output)
 	
 	# testing...
@@ -83,7 +91,7 @@ def main():
 	plt.plot(df_output)
 	plt.show()
 	
-	logger.info("Script completed in {timer}.")
+	logger.info(f"Script completed in {timer_main}.")
 	logger.info("Terminating gracefully...")
 
 

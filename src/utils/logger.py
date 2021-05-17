@@ -20,7 +20,6 @@ class Logger:
 
 	# lists of output streams for where each message should be printed
 	__out_streams = [(stdout, 2, 5), (stderr, 0, 1)]
-	__progress = None
 	__console_width = 120
 
 	def __init__(self, module_name: str):
@@ -29,6 +28,7 @@ class Logger:
 			that will be printed before each message
 		"""
 		self.module_name = module_name
+		self.__progress = None
 
 	@staticmethod
 	def __prefix() -> str:
@@ -74,16 +74,16 @@ class Logger:
 				line_pre = f"{Logger.__prefix()}{Logger.__level_name(level)}[{self.module_name}] "
 				remaining_length = Logger.__console_width - len(line_pre)
 				if state == "begin" and stream is stdout:
-					Logger.__progress = msg
-					print(f'{line_pre}{Logger.__progress}', file=stream, end="", flush=True)
+					self.__progress = msg
+					print(f'{line_pre}{self.__progress}', file=stream, end="", flush=True)
 				elif state == "update" and stream is stdout:
-					width = remaining_length - len(Logger.__progress) - len(msg)
+					width = remaining_length - len(self.__progress) - len(msg)
 					out = f'{"".join([" "] * width)}{msg}'
-					print(f'\r{line_pre}{Logger.__progress}{out}', file=stream, end="", flush=True)
+					print(f'\r{line_pre}{self.__progress}{out}', file=stream, end="", flush=True)
 				elif state == "end" and stream is stdout:
-					width = remaining_length - len(Logger.__progress) - len(msg)
+					width = remaining_length - len(self.__progress) - len(msg)
 					out = f'{"".join([" "] * width)}{msg}'
-					print(f"\r{line_pre}{Logger.__progress}{out}", file=stream, flush=True)
+					print(f"\r{line_pre}{self.__progress}{out}", file=stream, flush=True)
 					Logger.__progress = None
 				elif state is None:
 					print(Logger.__prefix() + Logger.__level_name(level) + f"[{self.module_name}] {msg}", file=stream)
@@ -130,19 +130,19 @@ class Logger:
 			Also this does not work in a context where multiple entities concurrently
 			write to stdout.
 		"""
-		assert Logger.__progress is None
+		assert self.__progress is None
 		self.__log(Logger.LEVEL_INFO, msg, state="begin")
 
 	def info_update(self, msg: str) -> None:
 		"""
 			Updates a previously created progress on stdout
 		"""
-		assert Logger.__progress is not None
+		assert self.__progress is not None
 		self.__log(Logger.LEVEL_INFO, msg, state="update")
 
 	def info_end(self, msg: str) -> None:
 		"""
 			Ends a previously created progress on stdout
 		"""
-		assert Logger.__progress is not None
+		assert self.__progress is not None
 		self.__log(Logger.LEVEL_INFO, msg, state="end")
