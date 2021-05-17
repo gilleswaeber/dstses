@@ -72,19 +72,10 @@ def main():
 	config = ConfigParser()
 	config.read(str(CONFIG_FILE))
 	config['DEFAULT']['resources_path'] = str(Path(CONFIG_FILE).parent.absolute())
-
-	
-	# define some variables for use in this function
-	location = 'Zch_Stampfenbachstrasse'
-	measurements_input = ['Humidity', 'Temperature', 'Pressure']
-	measurements_output = ['PM10']
-	col_names_timestamp = ['date']
-	col_names_input = [f'{location}.{v_name}' for v_name in measurements_input]
-	col_names_output = [f'{location}.{v_name}' for v_name in measurements_output]
 	
 	# read and prepare dataset for training
 	df_timeseries_complete = load_dataset("test_adapter", config)
-	df_timestamps, df_input, df_output = select_columns_3(df_timeseries_complete[-250:], col_names_timestamp, col_names_input, col_names_output)
+	df_timestamps, df_input, df_output = select_columns_3(df_timeseries_complete[-250:], config, "preprocessing")
 	
 	# testing...
 	plt.plot(df_input)
