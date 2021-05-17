@@ -7,3 +7,5 @@ sktime
 sklearn
 numpy
 pmdarima
+tensorflow
+keras
