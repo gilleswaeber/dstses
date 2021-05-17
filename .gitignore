@@ -6,6 +6,9 @@ opendata-dataset/
 venv/
 dockerenv/
 
+# Hide influx db config
+influx2.ini
+
 # IntelliJ Project
 *.iml
 /.idea
