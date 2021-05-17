@@ -19,7 +19,7 @@ def moving_average(dataframe: pd.DataFrame) -> pd.DataFrame:
 	timer = Timer()
 	
 	tau = 3.0
-	window = 10.0
+	window = 5.0
 	# correction factor for keeping the scale of the data consistent
 	a = np.e ** (-window / tau)
 	f = (a*(np.e ** ((1.0 / tau)*(window + 1))) - a) / (np.e ** (1.0 / tau) - 1.0) * np.sqrt(2)

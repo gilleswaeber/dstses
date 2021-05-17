@@ -65,6 +65,7 @@ def load_dataset(name: str, config: ConfigParser) -> pd.DataFrame:
 	logger.info_end(f"Done in {timer}")
 	return df
 
+
 def main():
 	print_header()
 	timer_main = Timer()

@@ -2,7 +2,8 @@ from sktime.forecasting.model_selection import temporal_train_test_split
 from sktime.forecasting.arima import AutoARIMA
 from sktime.performance_metrics.forecasting import mape_loss
 
-from sklearn.impute import SimpleImputer
+from preprocessing.imputing import impute_simple_imputer
+from models.scoring import eval_model_mape
 
 from utils.logger import Logger
 from utils.timer import Timer
@@ -49,12 +50,6 @@ def transform_data(timeseries: pd.DataFrame) -> (pd.Series, pd.DataFrame):
 	return y, x
 
 
-def impute_missing_values(timeseries: pd.DataFrame):
-	imputer = SimpleImputer(strategy='mean')
-	imputed_timeseries = pd.DataFrame(imputer.fit_transform(timeseries), columns=timeseries.columns)
-	return imputed_timeseries
-
-
 def train_model_autoarima(y, x) -> AutoARIMA:
 	logger.info_begin("Training AutoARIMA model...")
 	timer = Timer()
@@ -66,26 +61,14 @@ def train_model_autoarima(y, x) -> AutoARIMA:
 	return model
 
 
-def eval_model(model, y_test, x_test) -> float:
-	logger.info_begin("Measuring performance metrics...")
-	timer = Timer()
-	logger.info_update("Computing")
-	fh = np.arange(1, x_test.shape[0] + 1)
-	y_pred = model.predict(X=x_test, fh=fh)
-	logger.info_update("Scoring")
-	error = mape_loss(y_test, y_pred)
-	logger.info_end(f'Done in {timer}')
-	return error
-
-
 def prepare_model(timeseries: pd.DataFrame):
 	logger.info("Running script...")
 
 	timeseries = load_dataset(timeseries)
-	imputed_timeseries = impute_missing_values(timeseries)
+	imputed_timeseries = impute_simple_imputer(timeseries)
 	y, x = transform_data(imputed_timeseries)
 	y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
 	model = train_model_autoarima(y_train, x_train)
-	score = eval_model(model, y_test, x_test)
+	score = eval_model_mape(model, y_test, x_test)
 	logger.info(f"Score of model: {score:.04f}")
 	logger.info(f"Completed script in {timer_script}")

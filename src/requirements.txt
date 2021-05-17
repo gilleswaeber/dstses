@@ -4,5 +4,6 @@ influxdb
 tqdm
 sqlalchemy
 sktime
+sklearn
 numpy
 pmdarima
