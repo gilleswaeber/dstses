@@ -54,7 +54,7 @@ class LinearModel:
 		
 		# initialize model
 		self.model = Sequential()
-		self.model.add(Dense(units=self.train_length * self.train_vars))
+		self.model.add(Dense(units=self.train_length * self.train_vars, input_shape=(self.train_length, self.train_vars)))
 		self.model.add(Dropout(0.2))
 		self.model.add(Dense(units=self.train_length * self.train_vars))
 		self.model.add(Dropout(0.2))
@@ -63,6 +63,7 @@ class LinearModel:
 		self.columns = []
 	
 	def fit(self, y: np.ndarray, x: np.ndarray):
+		print(x.shape, y.shape)
 		self.model.fit(x=x, y=y)
 		return self.model
 	
@@ -127,8 +128,6 @@ def prepare_dataset_linear(dataframes: List[pd.DataFrame], in_names: List[str], 
 		for i in range(int(math.floor(length_of_frame / unit_size))):
 			dataframes_sized.append(df[i*unit_size:(i+1)*unit_size])
 	
-	print(dataframes_sized)
-	
 	# go through all provided datasets
 	for df in dataframes_sized:
 		# extract the wanted columns and store them in the output lists
@@ -157,7 +156,7 @@ def test_linear_model():
 	x_test, y_test, _, _, = prepare_dataset_linear([data[-250:]], ["sin", "cos"], ["res"], 250, 50)
 	
 	model = LinearModel(fh=50, train_length=200, train_vars=2)
-	model.fit(x_train, y_train)
+	model.fit(y_train, x_train)
 	y_pred = model.predict(x_test)
 	
 	plt.plot(y_test)
