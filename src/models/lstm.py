@@ -30,114 +30,64 @@ np.random.seed(42)
 class LSTMModel:
 	"""
 		This class describes a LSTM model.
-		
+
 		The LSTM model requires a different approach to train it. This includes a non standard
 		prepare function and a fit function that does not take pandas DataFrames but numpy ndarrays.
 	"""
 	
-	def __init__(self, fh: int, train_length: int, train_vars: int):
+	def __init__(self, vars: int):
 		"""
-			This constructs a LSTMModel for training and usage in a sort of sklean compatible way.
+			This constructs a LSTMModel for training and usage in a sort of sklearn compatible way.
 			
 			Parameters:
 				
-				fh: Forecasting horizon for the model. This needs to be specified to the constructor
-				for this model, since it actually defines the topology
-				
-				train_length: The number of timepoints that is the model is trained on per training iteration.
-				
-				train_vars: How many input variables there are
+				vars: How many input variables there are
 		"""
 		# set member variables
-		self.fh = fh
-		self.train_length = train_length
-		self.train_vars = train_vars
+		self.vars = vars
 		
 		# initialize model
 		self.model = Sequential()
-		self.model.add(LSTM(units=self.train_length * self.train_vars, activation='sigmoid'))
+		self.model.add(LSTM(units=10, activation='sigmoid', input_shape=(None, self.vars), return_sequences=False))
 		self.model.add(Dropout(0.2))
-		self.model.add(Dense(fh))
+		self.model.add(Dense(self.vars))
 		self.model.compile(loss='mean_squared_error', optimizer='adam')
 		self.columns = []
 	
-	def fit(self, y: np.ndarray, x: np.ndarray):
-		self.model.fit(x=x, y=y)
+	def fit(self, x: np.ndarray):
+		print(f"\n\nShape: {x.shape}\n\n")
+		print(f"Model: {self.model.input_shape}\n\n")
+		self.model.fit(x=x)
 		return self.model
 	
-	def predict(self, x) -> np.ndarray:
-		y_pred = self.model.predict(x=x)
+	def predict(self, x: np.ndarray, fh: int) -> np.ndarray:
+		y_pred = np.ndarray(self.vars)
+		for i in range(fh):
+			y_pred = np.append(y_pred, self.model.predict(np.append(arr=x, values=y_pred, axis=0)))
 		return y_pred
 
 
 def train_lstm_model(y: pd.DataFrame, x: pd.DataFrame, fh: int) -> LSTMModel:
 	logger.info_begin("Training LSTM...")
 	timer = Timer()
-	model = LSTMModel(fh=fh)
+	model = LSTMModel(vars=3)
 	model.fit(y, x)
 	
 	logger.info_end(f"Done in {timer}")
 	return model
-	
 
-def prepare_dataset_lstm(dataframes: List[pd.DataFrame], in_names: List[str], out_names: List[str], unit_size: int, fh: int)\
-		-> (np.ndarray, np.ndarray, List[str], List[str]):
+
+def prepare_dataset_lstm(dataframes: List[pd.DataFrame]) -> np.ndarray:
 	"""
-		This function reorganises a set of DataFrames into the 3-d numpy array that tensorflow wants for
-		the LSTM network.
-		
-		Parameters:
-			
-			dataframes: A list containing all the dataframes to be trained on. These dataframes should contain all
-			input columns (usually designated X) and all output columns (usually designated y).
-			
-			in_names: The names of the columns in X, that the network should take as an input.
-			
-			out_names: The names of the columns in y, that the network should take as output.
-			
-			unit_size: The amount of timesteps in a single unit. This includes the amount of timesteps used as inputs
-			and the amount of timesteps produced as outputs. Since the network will require both in the correct sizes
-			when training or testing.
-			
-			fh: The forecasting horizon. This describes how many timesteps the network will attempt to predict.
-		
-		Returns:
-			
-			A tuple containing the input data, output data, columns names of the input and column names of the output.
-			The names are included in case they will be needed later on, because the numpy ndarrays cannot store the
-			names the columns had when in the pandas dataframe.
-		
-		Authors:
-			linvogel
+		This function reformats a set of DataFrames into a 3-d numpy array that tensorflow wants for its networks.
 	"""
-	logger.info_begin("Preparing Dataset for LSTM...")
+	logger.info_begin("Preparing dataset...")
 	timer = Timer()
-	
-	# create lists that contain the finalized data
-	in_data: List[np.ndarray] = []
-	out_data: List[np.ndarray] = []
-	
-	# produce dataframes of length unit_size
-	dataframes_sized: List[pd.DataFrame] = []
-	for df in dataframes:
-		length_of_frame: int = df.shape[0]
-		
-		# split the data into as many disjoint chunks as possible
-		for i in range(int(math.floor(length_of_frame / unit_size))):
-			dataframes_sized.append(df[i*unit_size:(i+1)*unit_size])
-	
-	print(dataframes_sized)
-	
-	# go through all provided datasets
-	for df in dataframes_sized:
-		# extract the wanted columns and store them in the output lists
-		df_in: pd.DataFrame = df[in_names]
-		df_out: pd.DataFrame = df[out_names]
-		in_data.append(df_in[:-fh].to_numpy(copy=True))
-		out_data.append(df_out[-fh:].to_numpy(copy=True))
-		
+
+	out = [x.to_numpy() for x in dataframes]
+
 	logger.info_end(f"Done in {timer}")
-	return np.array(in_data), np.array(out_data), in_names, out_names
+	return np.array(out)
 
 
 def test_lstm_model():
@@ -152,15 +102,21 @@ def test_lstm_model():
 	
 	data = pd.DataFrame([data_sin, data_cos, data_res], index=["sin", "cos", "res"]).transpose()
 	
-	x_train, y_train, _, _ = prepare_dataset_lstm([data[:-250]], ["sin", "cos"], ["res"], 250, 50)
-	x_test, y_test, _, _, = prepare_dataset_lstm([data[-250:]], ["sin", "cos"], ["res"], 250, 50)
+	x_train = prepare_dataset_lstm([data[:-50]])
+	x_test = prepare_dataset_lstm([data[-50:]])
 	
-	model = LSTMModel(fh=50, train_length=200, train_vars=2)
-	model.fit(x_train, y_train)
-	y_pred = model.predict(x_test)
+	model = LSTMModel(vars=3)
+	logger.info_begin("Training model...")
+	timer = Timer()
+	model.fit(x_train)
+	logger.info_end(f"Done in {timer}")
+	logger.info_begin("Getting prediction...")
+	timer = Timer()
+	x_pred = model.predict(x_test, fh=10)
+	logger.info_end(f"Done in {timer}")
 	
-	plt.plot(y_test)
-	plt.plot(y_pred)
+	plt.plot(x_train)
+	plt.plot(x_pred)
 	plt.show()
 	
 
