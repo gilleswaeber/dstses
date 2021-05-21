@@ -51,7 +51,7 @@ class LSTMModel:
 		self.model.add(LSTM(units=10, activation='sigmoid', input_shape=(None, self.vars), return_sequences=False))
 		self.model.add(Dropout(0.2))
 		self.model.add(Dense(self.vars))
-		self.model.compile(loss='mean_squared_error', optimizer='adam')
+		self.model.compile(loss='mean_squared_error')
 		self.columns = []
 	
 	def fit(self, x: np.ndarray):

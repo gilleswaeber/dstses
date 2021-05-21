@@ -75,15 +75,15 @@ class Logger:
 				remaining_length = Logger.__console_width - len(line_pre)
 				if state == "begin" and stream is stdout:
 					Logger.__progress = msg
-					print(f'{line_pre}{self.__progress}', file=stream, end="", flush=True)
+					print(f'{line_pre}{Logger.__progress}', file=stream, end="", flush=True)
 				elif state == "update" and stream is stdout:
-					width = remaining_length - len(self.__progress) - len(msg)
+					width = remaining_length - len(Logger.__progress) - len(msg)
 					out = f'{"".join([" "] * width)}{msg}'
-					print(f'\r{line_pre}{self.__progress}{out}', file=stream, end="", flush=True)
+					print(f'\r{line_pre}{Logger.__progress}{out}', file=stream, end="", flush=True)
 				elif state == "end" and stream is stdout:
-					width = remaining_length - len(self.__progress) - len(msg)
+					width = remaining_length - len(Logger.__progress) - len(msg)
 					out = f'{"".join([" "] * width)}{msg}'
-					print(f"\r{line_pre}{self.__progress}{out}", file=stream, flush=True)
+					print(f"\r{line_pre}{Logger.__progress}{out}", file=stream, flush=True)
 					Logger.__progress = None
 				elif state is None:
 					print(Logger.__prefix() + Logger.__level_name(level) + f"[{self.module_name}] {msg}", file=stream)

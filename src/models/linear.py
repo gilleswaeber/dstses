@@ -36,7 +36,7 @@ class LinearModel:
 	
 	def __init__(self, fh: int, train_length: int, train_vars: int):
 		"""
-			This constructs a LSTMModel for training and usage in a sort of sklean compatible way.
+			This constructs a LinearModel for training and usage in a sort of sklearn compatible way.
 			
 			Parameters:
 				
@@ -54,7 +54,7 @@ class LinearModel:
 		
 		# initialize model
 		self.model = Sequential()
-		self.model.add(Dense(units=self.train_length * self.train_vars, input_shape=(self.train_length, self.train_vars)))
+		self.model.add(Dense(units=self.train_length * self.train_vars))
 		self.model.add(Dropout(0.2))
 		self.model.add(Dense(units=self.train_length * self.train_vars))
 		self.model.add(Dropout(0.2))
@@ -73,7 +73,7 @@ class LinearModel:
 
 
 def train_linear_model(y: pd.DataFrame, x: pd.DataFrame, fh: int) -> LinearModel:
-	logger.info_begin("Training LSTM...")
+	logger.info_begin("Training Linear Network...")
 	timer = Timer()
 	model = LinearModel(fh=fh)
 	model.fit(y, x)
@@ -86,7 +86,7 @@ def prepare_dataset_linear(dataframes: List[pd.DataFrame], in_names: List[str], 
 		-> (np.ndarray, np.ndarray, List[str], List[str]):
 	"""
 		This function reorganises a set of DataFrames into the 3-d numpy array that tensorflow wants for
-		the LSTM network.
+		the Linear network.
 		
 		Parameters:
 			
@@ -155,9 +155,14 @@ def test_linear_model():
 	x_train, y_train, _, _ = prepare_dataset_linear([data[:-250]], ["sin", "cos"], ["res"], 250, 50)
 	x_test, y_test, _, _, = prepare_dataset_linear([data[-250:]], ["sin", "cos"], ["res"], 250, 50)
 	
+	print(f"Shapes: {x_train.shape}, {y_train.shape}, {x_test.shape}")
+	
+	l_train = len(x_train)
+	l_test = len(x_test)
+	
 	model = LinearModel(fh=50, train_length=200, train_vars=2)
-	model.fit(y_train, x_train)
-	y_pred = model.predict(x_test)
+	model.fit(y_train.reshape((l_train, 1, 50)), x_train.reshape((l_train, 1, 400)))
+	y_pred = model.predict(x_test.reshape((l_test, 1, 400)))
 	
 	plt.plot(y_test)
 	plt.plot(y_pred)

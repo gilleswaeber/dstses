@@ -11,13 +11,16 @@ from utils.timer import Timer
 logger = Logger("Evaluation")
 
 
-def eval_model_mape(model, y_test, x_test) -> float:
-	logger.info_begin("Measuring performance metrics...")
-	timer = Timer()
-	logger.info_update("Computing")
+def eval_model_mape(model, y_test, x_test, output: bool = True) -> float:
+	if output:
+		logger.info_begin("Measuring performance metrics...")
+		timer = Timer()
+		logger.info_update("Computing")
 	fh = np.arange(1, x_test.shape[0] + 1)
 	y_pred = model.predict(X=x_test, fh=fh)
-	logger.info_update("Scoring")
+	if output:
+		logger.info_update("Scoring")
 	error = mape_loss(y_test, y_pred)
-	logger.info_end(f'Done in {timer}')
+	if output:
+		logger.info_end(f'Done in {timer}')
 	return error

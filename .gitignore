@@ -12,3 +12,6 @@ influx2.ini
 # IntelliJ Project
 *.iml
 /.idea
+
+# don't upload all images, since they can be generated
+saved_graphs/
