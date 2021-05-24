@@ -123,7 +123,7 @@ async def main():
 		data = client.get_data()
 		imputed_data = impute_simple_imputer(data[1:])
 		avg_data = moving_average(imputed_data)
-		forecast_list = [model.predict(x=df_input, fh=5) for model in models]
+		forecast_list = [model.predict(x=avg_data, fh=5) for model in models]
 		forecast=sum(forecast_list)/len(forecast_list)
 		client.send_data(forecast)
 

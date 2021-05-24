@@ -18,3 +18,5 @@ indent_style = tab
 
 [{*.r, *.rprofile}]
 indent_size = 2
+
+[*.ipynb]
