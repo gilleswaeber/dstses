@@ -1,6 +1,7 @@
 import configparser
 from asyncio import gather
 
+from sktime.forecasting.model_selection import temporal_train_test_split
 from preprocessing.imputing import impute_simple_imputer
 from preprocessing.moving_average import moving_average
 from utils.threading import to_thread
@@ -100,8 +101,12 @@ async def main():
 
 	print(df_timeseries_complete[:1])
 	df_timeseries = chop_first_fringe(df_timeseries_complete)
-	df_timeseries = df_timeseries.drop(labels=["date"])
-	df_timestamps, df_input, df_output = select_columns_3(df_timeseries, config, "preprocessing")
+	imputed_timeseries = impute_simple_imputer(df_timeseries)
+	smooth_timeseries = moving_average(imputed_timeseries)
+	df_timestamps, df_input, df_output = select_columns_3(smooth_timeseries, config, "preprocessing")
+	y_train, y_test, x_train, x_test = temporal_train_test_split(df_output, df_input, test_size=0.1)
+
+
 
 	trainers = [to_thread(f, config=config, data=df_timeseries_complete) for f in [train_or_load_ARIMA, train_or_load_LSTM]]
 	models = await gather(trainers)
