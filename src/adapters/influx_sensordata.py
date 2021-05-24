@@ -1,10 +1,12 @@
 from configparser import ConfigParser
 from pathlib import Path
 
-from influxdb_client import InfluxDBClient
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import SYNCHRONOUS
 
 from adapters import data_adapter
 from utils import logger
+from datetime import datetime
 
 """
 	Loads the influx db server data and fills the data into the dataframe.
@@ -28,15 +30,21 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 		self.name = name
 		self.bucket = config[name]["bucket"]
 		self.start = config[name].get("start", "-30d")
+		self.client = InfluxDBClient.from_config_file(self.config["influx"]["config"])
 
 	def get_data(self):
-		with InfluxDBClient.from_config_file(
-			str(Path(self.config["resources_path"]) / self.config["influx"]["config"])
-		) as client:
-			query = client.query_api()
+		query = self.client.query_api()
 
-			return query.query_data_frame(f'from(bucket:"{self.bucket}")'
-										  f'|> range(start: {self.start})'
-										  '|> filter(fn: (r) => r["_measurement"] == "pollution" or r["_measurement"] == "weather")'
-										  '|> aggregateWindow(every: 1h, fn: mean, createEmpty: false)'
-										  '|> yield(name: "mean")')
+		return query.query_data_frame(f'from(bucket:"{self.bucket}")'
+									  f'|> range(start: {self.start})'
+									  '|> filter(fn: (r) => r["_measurement"] == "pollution" or r["_measurement"] == "weather")'
+									  '|> aggregateWindow(every: 1h, fn: mean, createEmpty: false)'
+									  '|> yield(name: "mean")')
+
+	def send_data(self, value):
+		point = Point("prediction").field("prediction", value).time(datetime.now())
+		with self.client.write_api(write_options=SYNCHRONOUS) as write_api:
+			write_api.write(point)
+
+	def __exit__(self):
+		self.client.close()
