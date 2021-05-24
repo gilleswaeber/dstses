@@ -1,22 +1,29 @@
-import asyncio
+import configparser
+from asyncio import gather
+
+from preprocessing.imputing import impute_simple_imputer
+from preprocessing.moving_average import moving_average
+from utils.threading import to_thread
 import os
 from configparser import ConfigParser
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 from adapters.data_adapter import IDataAdapter
 from adapters.hist_data_adapter import HistDataAdapter
-from models.autoarima import prepare_model
-from models.lstm import train_lstm_model
+from adapters.influx_sensordata import InfluxSensorData
+from models.autoarima import train_or_load_ARIMA
+from models.lstm import train_or_load_LSTM
 from preprocessing.column_selector import select_columns_3
 from utils.logger import Logger
 from utils.timer import Timer
 
 logger: Logger = Logger(module_name="Model 1")
 script_timer = Timer()
-CONFIG_FILE = Path(os.getenv("FILE_PATH", __file__)).parent.parent.absolute() / "resources" / "config.ini"
+CONFIG_FILE = Path(os.getenv("FILE_PATH", __file__)).parent.absolute() / "resources" / "config.ini"
 
 
 # structure of time series: rows: instances, cols: variables, depth: series of values
@@ -64,32 +71,61 @@ def load_dataset(name: str, config: ConfigParser) -> pd.DataFrame:
 	return df
 
 
+def chop_first_fringe(timeseries: pd.DataFrame) -> pd.DataFrame:
+	logger.info("Loading dataset...")
+	timer = Timer()
+
+	# select only intervals where all values are available
+	fvi = np.max([timeseries[col].first_valid_index() for col in timeseries.columns])
+	drop_indices = np.arange(0, fvi + 1)
+	timeseries = timeseries.drop(drop_indices)
+	# drop the date column because it is not a numeric value
+	timeseries = timeseries.drop(labels=["date"], axis=1)
+	logger.info(f'Done in {timer}')
+
+	return timeseries
+
 async def main():
 	print_header()
 	timer_main = Timer()
 
+	print(CONFIG_FILE)
 	config = ConfigParser()
-	config.read(str(CONFIG_FILE))
+	config._interpolation = configparser.ExtendedInterpolation()
 	config['DEFAULT']['resources_path'] = str(Path(CONFIG_FILE).parent.absolute())
+	config.read(str(CONFIG_FILE))
 
 	# read and prepare dataset for training
 	df_timeseries_complete = load_dataset("test_adapter", config)
-	df_timestamps, df_input, df_output = select_columns_3(df_timeseries_complete[-250:], config, "preprocessing")
-	# testing...
 
-	autoarima_trainer = asyncio.create_task(lambda: prepare_model(timeseries=df_timeseries_complete))
-	lstm_trainer = asyncio.create_task(lambda: train_lstm_model(y=df_output, x=df_input, fh=10))
-	models = await asyncio.gather(autoarima_trainer, lstm_trainer)
+	print(df_timeseries_complete[:1])
+	df_timeseries = chop_first_fringe(df_timeseries_complete)
+	df_timeseries = df_timeseries.drop(labels=["date"])
+	df_timestamps, df_input, df_output = select_columns_3(df_timeseries, config, "preprocessing")
 
-	y_pred = lstm.predict(x=df_input)
+	trainers = [to_thread(f, config=config, data=df_timeseries_complete) for f in [train_or_load_ARIMA, train_or_load_LSTM]]
+	models = await gather(trainers)
+	[model.store(config) for model in models] # Stores if not existing. Does NOT OVERWRITE!!!
 
-	print(y_pred)
+	forecast_test = [model.predict(x=df_input, fh=5) for model in models]
 
-	plt.plot(y_pred)
+	print(forecast_test)
+
+	plt.plot(forecast_test)
 	plt.show()
 
 	logger.info(f"Script completed in {timer_main}.")
 	logger.info("Terminating gracefully...")
+
+	logger.info("start predicting new time")
+
+	with InfluxSensorData(config=config, name="influx") as client:
+		data = client.get_data()
+		imputed_data = impute_simple_imputer(data[1:])
+		avg_data = moving_average(imputed_data)
+		forecast_list = [model.predict(x=df_input, fh=5) for model in models]
+		forecast=sum(forecast_list)/len(forecast_list)
+		client.send_data(forecast)
 
 
 # if this is the main file, then run the main function directly

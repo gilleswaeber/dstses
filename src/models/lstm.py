@@ -3,7 +3,6 @@
 """
 # disable tensorflow logging
 import os
-from typing import List
 
 from tqdm import tqdm
 
@@ -17,18 +16,19 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from keras.models import Sequential
+
+from keras.models import Sequential, load_model
 from keras.layers import Dense, TimeDistributed
 from keras.layers import LSTM
 
 from utils.logger import Logger
 from utils.timer import Timer
+from configparser import ConfigParser
 
 logger = Logger("LSTM")
 
 tf.random.set_seed(42)
 np.random.seed(42)
-
 
 class LSTMModel:
 	"""
@@ -38,7 +38,7 @@ class LSTMModel:
 		prepare function and a fit function that does not take pandas DataFrames but numpy ndarrays.
 	"""
 
-	def __init__(self, vars: int):
+	def __init__(self, vars: int, model: Sequential = None):
 		"""
 			This constructs a LSTMModel for training and usage in a sort of sklearn compatible way.
 
@@ -46,15 +46,16 @@ class LSTMModel:
 
 				vars: How many input variables there are
 		"""
-		# set member variables
-		self.vars = vars
 
-		# initialize model
-		self.model = Sequential()
-		self.model.add(LSTM(units=128, activation='sigmoid', input_shape=(None, self.vars), return_sequences=True))
-		self.model.add(TimeDistributed(Dense(self.vars)))
-		self.model.compile(loss='mean_squared_error', optimizer='adam')
-		self.model.summary()
+		if model is None:
+			# initialize model
+			self.model = Sequential()
+			self.model.add(LSTM(units=128, activation='sigmoid', input_shape=(None, vars), return_sequences=True))
+			self.model.add(TimeDistributed(Dense(vars)))
+			self.model.compile(loss='mean_squared_error', optimizer='adam')
+			self.model.summary()
+		else:
+			self.model = model
 
 	def fit(self, y: np.ndarray, x: np.ndarray, epochs: int):
 		print(f"Shape: {x.shape}")
@@ -80,40 +81,49 @@ class LSTMModel:
 			past = np.append(past, y_pred.reshape((1, -1)), axis=0)
 		return np.array(predicted)
 
+	def store(self, config: ConfigParser):
+		path = config["storage_location"] + "/autoarima.pkl"
+		if not os.path.exists(path):
+			self.model.save(path)
 
-def train_lstm_model(y: pd.DataFrame, x: pd.DataFrame, fh: int) -> LSTMModel:
-	logger.info_begin("Training LSTM...")
+	def predict(self, x, fh):
+		return self.predict_next(x)
+
+def train_or_load_LSTM(config: ConfigParser, data: pd.DataFrame) -> LSTMModel:
+	p = config["storage_location"] + "/autoarima.pkl"
+	if os.path.exists(p):
+		return load(config)
+	else:
+		return train_lstm_model(data)
+
+
+
+def load(config: ConfigParser) -> LSTMModel:
+	path = config["storage_location"] + "/autoarima.pkl"
+	return LSTMModel(vars=0, model=load_model(path))
+
+def train_lstm_model(data: pd.DataFrame) -> LSTMModel:
+	logger.info("Training LSTM...")
 	timer = Timer()
 	model = LSTMModel(vars=3)
-	model.fit(y, x, 20)
 
-	logger.info_end(f"Done in {timer}")
+	# extract the data with a sliding window of length 20
+	x_train, y_train = prepare_window_off_by_1(data[:-50], 20)
+
+	model.fit(y=y_train, x=x_train, epochs=10)
+
+	logger.info(f"Done in {timer}")
 	return model
 
-
-def prepare_dataset_lstm(dataframes: List[pd.DataFrame]) -> np.ndarray:
-	"""
-		This function reformats a set of DataFrames into a 3-d numpy array that tensorflow wants for its networks.
-	"""
-	logger.info_begin("Preparing dataset...")
-	timer = Timer()
-
-	out = [x.to_numpy() for x in dataframes]
-
-	logger.info_end(f"Done in {timer}")
-	return np.array(out)
-
-
 def test_lstm_model():
-	n = 1000
+	n = 100000
 	start = 0
-	stop = 70
+	stop = 140
 	# produce some test data: X contains sin, cos and y contains 1/(1+cos^2). Random noise is also added to both
 	data_sin = np.sin(np.linspace(start, stop, n)) + (np.random.random(n) * 0.4 - 0.2)
 	data_cos = np.cos(np.linspace(start, stop, n)) + (np.random.random(n) * 0.4 - 0.2)
 
 	data_res = 1.0 / (1.0 + np.cos(np.linspace(start, stop, n)) ** 2) + (np.random.random(n) * 0.2 - 0.1)
-
 	data = pd.DataFrame([data_sin, data_cos, data_res], index=["sin", "cos", "res"]).transpose()
 
 	# For fitting, we need need x.shape == [n, v, f] and y.shape == [n, v, f] where:
@@ -122,21 +132,11 @@ def test_lstm_model():
 	# - f is the number of features
 	# The sequence y[i, :-1, :] should equal x[i, 1:, :], i.e. is offset by one
 
-	model = LSTMModel(vars=3)
-	logger.info_begin("Training model...")
-	timer = Timer()
+	model = train_lstm_model(data)
 
-	# extract the data with a sliding window of length 20
-	x_train, y_train = prepare_window_off_by_1(data[:-50], 20)
 	x_test, y_test = prepare_window_off_by_1(data[-50:], 20)
-
-	model.fit(y=y_train, x=x_train, epochs=10)
-	logger.info_end(f"Done in {timer}")
-	logger.info_begin("Getting prediction...")
-	timer = Timer()
 	y_pred = np.array([model.predict_next(x_test[i]) for i in range(x_test.shape[0])])  # model.predict(x_test, fh=10)
 	y_pred_seq = model.predict_sequence(x_test[0], y_test.shape[0])
-	logger.info_end(f"Done in {timer}")
 
 	plt.plot(y_test[:, -1, 0])  # blue
 	plt.plot(y_pred[:, 0])  # green

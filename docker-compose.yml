@@ -7,13 +7,12 @@ services:
       dockerfile: docker/src/jupiter/DOCKERFILE
     ports:
     - "8888:8888"
-    command: "/bin/bash -c 'jupyter notebook --allow-root'"
     environment:
       JUPYTER_ENABLE_LAB: "yes"
       NVIDIA_VISIBLE_DEVICES: "all"
       NVIDIA_DRIVER_CAPABILITIES: "compute,video,utility"
     volumes:
-      - "./src/workbooks:/home/jovyan/work:rw"
+      - "./:/home/jovyan/work:rw"
       # - "./docker/src/display_.py:/opt/.pycharm_helpers/pycharm_display/datalore/display/display_.py"
     deploy:
       resources:

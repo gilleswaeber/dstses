@@ -7,6 +7,7 @@ from sqlalchemy.engine import Connection
 
 from adapters import data_adapter
 from utils import logger
+from datetime import datetime
 
 """
 	Opens the local sqlite database downloaded by hist_data and fills the database into dataframe. Needs as optional
@@ -52,9 +53,9 @@ class HistDataAdapter(data_adapter.IDataAdapter):
 		return r.first() is not None
 
 	def get_data(self):
-		self.logger.info_begin(f"Loading sqlite...")
+		self.logger.info(f"Loading sqlite...")
 		with self.get_engine().connect() as con:
 			assert self.table_exists(self.dataset, con)
 			table = self.get_time_series(con, self.dataset, self.location)
-			self.logger.info_end(f"done")
+			self.logger.info(f"Loading sqlite... done")
 			return table
