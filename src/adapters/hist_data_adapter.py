@@ -1,11 +1,12 @@
-
-from utils import logger
-import pandas as pd
-from adapters import data_adapter
+from configparser import ConfigParser
 from pathlib import Path
+
+import pandas as pd
 import sqlalchemy
 from sqlalchemy.engine import Connection
-from configparser import ConfigParser
+
+from adapters import data_adapter
+from utils import logger
 
 """
 	Opens the local sqlite database downloaded by hist_data and fills the database into dataframe. Needs as optional
@@ -14,12 +15,13 @@ from configparser import ConfigParser
 	even simpler. If given it will use the given configuration.
 """
 
+
 class HistDataAdapter(data_adapter.IDataAdapter):
 	HIST_DATA_SQLITE_DB = Path(__file__).parent.parent.parent.absolute() / "hist_data" / "data" / 'hist_data.sqlite'
 	headers_nabel = ["PM10", "PM2.5", "Temperature", "Rainfall"]
 	headers_zurich = ["PM10", "PM2.5", "Humidity", "Temperature", "Pressure"]
 
-	def __init__(self, config: ConfigParser, name, dataset = None, location = None):
+	def __init__(self, config: ConfigParser, name, dataset=None, location=None):
 		super().__init__(logger.Logger(module_name=f"hist data adapter '{name}'"), config)
 		self.name = name
 		self.dataset = config[name]["dataset"] if dataset is None else dataset

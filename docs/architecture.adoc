@@ -2,7 +2,8 @@
 Matthias Baumann <matthias-baumann@outlook.com>
 v0.1: First draft
 
-The project features mass-data accumulation through an IoT Sensor, Warehousing and Processing. The future idea of usage is to integrate the measured data with additional datasets.
+The project features mass-data accumulation through an IoT Sensor, Warehousing and Processing.
+The future idea of usage is to integrate the measured data with additional datasets.
 
 
 :stem:
@@ -16,4 +17,5 @@ The project features mass-data accumulation through an IoT Sensor, Warehousing a
 == General Proposal
 
 Matthias Idea:
-Rasperry Pi for data aquisition and influxdb for storing the time-series. We have an Jupiter server that will serve us with the IDE to work in.
+Rasperry Pi for data aquisition and influxdb for storing the time-series.
+We have an Jupiter server that will serve us with the IDE to work in.

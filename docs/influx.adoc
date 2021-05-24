@@ -10,6 +10,7 @@ v0.1: First draft
 :experimental:
 
 == Influx Architecture
+
 * Bucket: actual_weather_data
 ** Measurement: weather
 *** Field temparature: Float (2)
@@ -21,8 +22,8 @@ v0.1: First draft
 *** Field nc2.5: Float (2)
 *** Field pm4.0: Float (3)
 *** Field nc4.0: Float (2)
-*** Field pm10:  Float (3)
-*** Field nc10:  Float (2)
+*** Field pm10: Float (3)
+*** Field nc10: Float (2)
 
 whereas
 
@@ -30,10 +31,13 @@ whereas
 * Float (2) [1, 200] with 2 places after comma
 
 == Influx Data Explorer
+
 WARNING: The data explorer seems sometimes not to show data until 5min after aquisition and it always aggregates the data with the selected aggregation function, so be aware to select correct consolidation function before executing the query.
 
 == Influx CLI
-Download influx db command line utility (single executable without dependencies). From https://docs.influxdata.com/influxdb/v2.0/get-started/
+
+Download influx db command line utility (single executable without dependencies).
+From https://docs.influxdata.com/influxdb/v2.0/get-started/
 
 Then chmod if Linux
 
@@ -43,7 +47,8 @@ Then go on online admin console > Data > Tokens > Generate Token > All Access To
 ./influx config create --config-name cloud  --host-url https://eu-central-1-1.aws.cloud2.influxdata.com --org b8cabab6f46931b4 --token <token> --active
 ++++
 
-CLI is now initialized and you can manage Influx from there. For more information see https://docs.influxdata.com/influxdb/cloud/reference/cli/influx/
+CLI is now initialized and you can manage Influx from there.
+For more information see https://docs.influxdata.com/influxdb/cloud/reference/cli/influx/
 
 Often used:
 https://docs.influxdata.com/influxdb/cloud/reference/cli/influx/delete/
@@ -53,4 +58,6 @@ https://docs.influxdata.com/influxdb/cloud/reference/cli/influx/delete/
 The client libraries are documented on: https://docs.influxdata.com/influxdb/v2.0/tools/client-libraries/
 
 == Crontab
-Currently, the crontab is set to one hour. I'm currently in discussion with sachid what would be an appropriate timing and sampling density.
+
+Currently, the crontab is set to one hour.
+I'm currently in discussion with sachid what would be an appropriate timing and sampling density.

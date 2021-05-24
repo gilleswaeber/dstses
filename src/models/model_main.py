@@ -1,27 +1,24 @@
-from sktime.forecasting.naive import NaiveForecaster
-from sktime.utils.plotting import plot_series
-from sktime.datasets import load_airline, load_uschange, load_longley
-from sktime.forecasting.model_selection import temporal_train_test_split
-import sqlalchemy
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
-from utils import sqlite_utils
-from utils.logger import Logger
-from utils.timer import Timer
-from preprocessing.column_selector import select_columns_2, select_columns_3
-from preprocessing.moving_average import moving_average
+import asyncio
+import os
 from configparser import ConfigParser
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
 from adapters.data_adapter import IDataAdapter
 from adapters.hist_data_adapter import HistDataAdapter
-from models.lstm import LSTMModel, train_lstm_model
-import os
+from models.autoarima import prepare_model
+from models.lstm import train_lstm_model
+from preprocessing.column_selector import select_columns_3
+from utils.logger import Logger
+from utils.timer import Timer
 
 logger: Logger = Logger(module_name="Model 1")
 script_timer = Timer()
 CONFIG_FILE = Path(os.getenv("FILE_PATH", __file__)).parent.parent.absolute() / "resources" / "config.ini"
+
+
 # structure of time series: rows: instances, cols: variables, depth: series of values
 
 
@@ -59,34 +56,38 @@ def load_dataset(name: str, config: ConfigParser) -> pd.DataFrame:
 	logger.info_begin("Loading dataset...")
 	timer = Timer()
 
-	adapter : IDataAdapter = HistDataAdapter(config, name)
+	adapter: IDataAdapter = HistDataAdapter(config, name)
 	# read the dataframe from the database
 	df: pd.DataFrame = adapter.get_data()
-	
+
 	logger.info_end(f"Done in {timer}")
 	return df
 
 
-def main():
+async def main():
 	print_header()
 	timer_main = Timer()
 
 	config = ConfigParser()
 	config.read(str(CONFIG_FILE))
 	config['DEFAULT']['resources_path'] = str(Path(CONFIG_FILE).parent.absolute())
-	
+
 	# read and prepare dataset for training
 	df_timeseries_complete = load_dataset("test_adapter", config)
 	df_timestamps, df_input, df_output = select_columns_3(df_timeseries_complete[-250:], config, "preprocessing")
 	# testing...
-	model = train_lstm_model(y=df_output, x=df_input, fh=10)
-	y_pred = model.predict(x=df_input)
-	
+
+	autoarima_trainer = asyncio.create_task(lambda: prepare_model(timeseries=df_timeseries_complete))
+	lstm_trainer = asyncio.create_task(lambda: train_lstm_model(y=df_output, x=df_input, fh=10))
+	models = await asyncio.gather(autoarima_trainer, lstm_trainer)
+
+	y_pred = lstm.predict(x=df_input)
+
 	print(y_pred)
-	
+
 	plt.plot(y_pred)
 	plt.show()
-	
+
 	logger.info(f"Script completed in {timer_main}.")
 	logger.info("Terminating gracefully...")
 
@@ -94,4 +95,3 @@ def main():
 # if this is the main file, then run the main function directly
 if __name__ == "__main__":
 	main()
-

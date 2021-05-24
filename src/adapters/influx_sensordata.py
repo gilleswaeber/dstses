@@ -1,10 +1,10 @@
 from configparser import ConfigParser
+from pathlib import Path
 
 from influxdb_client import InfluxDBClient
 
 from adapters import data_adapter
 from utils import logger
-from pathlib import Path
 
 """
 	Loads the influx db server data and fills the data into the dataframe.
@@ -31,7 +31,7 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 
 	def get_data(self):
 		with InfluxDBClient.from_config_file(
-				str(Path(self.config["resources_path"]) / self.config["influx"]["config"])
+			str(Path(self.config["resources_path"]) / self.config["influx"]["config"])
 		) as client:
 			query = client.query_api()
 

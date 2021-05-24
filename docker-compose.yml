@@ -10,12 +10,18 @@ services:
     command: "/bin/bash -c 'jupyter notebook --allow-root'"
     environment:
       JUPYTER_ENABLE_LAB: "yes"
+      NVIDIA_VISIBLE_DEVICES: "all"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,video,utility"
     volumes:
       - "./src/workbooks:/home/jovyan/work:rw"
+      # - "./docker/src/display_.py:/opt/.pycharm_helpers/pycharm_display/datalore/display/display_.py"
     deploy:
       resources:
         reservations:
           devices:
-          - driver: nvidia
-            count: 1
-            capabilities: [gpu, utility]
+            - driver: nvidia
+              device_ids: [ '0' ]
+              capabilities: [ gpu, utility ]
+    devices:
+      - /dev/nvidiactl:/dev/nvidiactl:mrw
+      - /dev/nvidia0:/dev/nvidia0:mrw

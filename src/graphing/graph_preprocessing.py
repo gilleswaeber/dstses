@@ -2,12 +2,11 @@
 	This file contains some functions that demonstrate the functionality of our preprocessing in
 	a visual manner.
 """
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 
-from preprocessing.moving_average import moving_average
 from preprocessing.imputing import impute_simple_imputer
-
+from preprocessing.moving_average import moving_average
 from utils.sqlite_utils import get_engine, get_time_series
 
 

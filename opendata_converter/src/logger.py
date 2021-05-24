@@ -1,6 +1,6 @@
-from sys import stdout, stderr
 from datetime import datetime
 from io import TextIOWrapper
+from sys import stdout, stderr
 
 
 class Logger:

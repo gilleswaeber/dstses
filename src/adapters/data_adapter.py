@@ -1,16 +1,19 @@
-from utils import logger
-from pandas import DataFrame
 from configparser import *
+
+from pandas import DataFrame
+
+from utils import logger
 
 """
 	IDataAdapter is the interface of any class that is capable of downloading/defining data usable in model 
 	learning/testing/running purposes.
 """
+
+
 class IDataAdapter:
 	def __init__(self, logger: logger.Logger, config: ConfigParser):
 		self.logger = logger
 		self.config = config
-
 
 	def get_data(self):
 		"""

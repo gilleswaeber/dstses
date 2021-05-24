@@ -2,15 +2,13 @@
 	This file is responsible for drawing graphs of our data.
 """
 
-import sys
 import os
-
+import sys
 from typing import Callable, Dict
 
 from graph_data import graph_random_noise
-from graph_preprocessing import graph_moving_average, graph_simple_imputer
 from graph_models import graph_model_autoarima
-
+from graph_preprocessing import graph_moving_average, graph_simple_imputer
 from utils.logger import Logger
 from utils.timer import Timer
 
@@ -18,15 +16,15 @@ logger = Logger("Graphing")
 
 
 class Command:
-	
+
 	def __init__(self, name: str, desc: str, func: Callable[[], None]):
 		self.name = name
 		self.desc = desc
 		self.func = func
-	
+
 	def __call__(self, *args, **kwargs):
 		self.func()
-	
+
 	def __str__(self):
 		padding = "".join([" " for _ in range(24 - len(self.name))])
 		return f"{self.name}{padding}{self.desc}"
@@ -42,20 +40,20 @@ def print_header():
 
 def main(commands: Dict[str, Command]):
 	print_header()
-	
+
 	if os.getcwd().endswith('graphing'):
 		os.chdir('../..')
 	elif not os.getcwd().endswith('dstses'):
 		logger.error(f"ERROR: This script should only be run from the root folder of the project")
 		return
-	
+
 	if not os.path.isdir("saved_graphs"):
 		os.mkdir("saved_graphs")
 	os.chdir("saved_graphs")
-	
+
 	# create a temporary list of all functions to be called, so as not to clutter the output if a predictable error occurs
 	to_be_called = []
-	
+
 	for arg in sys.argv[1:]:
 		if arg == 'all':
 			to_be_called = list(filter(lambda x: x.name != 'all', commands.values()))
@@ -69,10 +67,10 @@ def main(commands: Dict[str, Command]):
 			for cmd in commands.values():
 				logger.info(f"\t{cmd}")
 			sys.exit()
-	
+
 	if len(to_be_called) < 1:
 		to_be_called = list(filter(lambda x: x.name != 'all', commands.values()))
-		
+
 	for cmd in to_be_called:
 		timer = Timer()
 		logger.info_begin(f"Running '{cmd.name}'...")

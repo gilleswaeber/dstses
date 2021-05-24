@@ -2,18 +2,20 @@
 
 """
 
-import pandas as pd
+import json
+from configparser import ConfigParser
 from typing import List
+
+import pandas as pd
 
 from utils.logger import Logger
 from utils.timer import Timer
-from configparser import ConfigParser
-import json
 
 logger = Logger("Column Selector")
 
 
-def select_columns_3(df_input: pd.DataFrame, config: ConfigParser, name: str) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+def select_columns_3(df_input: pd.DataFrame, config: ConfigParser, name: str) -> (
+pd.DataFrame, pd.DataFrame, pd.DataFrame):
 	"""
 		Splits a pandas DataFrame along its columns into three DataFrames containing timestamps, a DataFrame containing
 		the input data and a DataFrame containing the output data.
@@ -51,9 +53,9 @@ def select_columns_3(df_input: pd.DataFrame, config: ConfigParser, name: str) ->
 	df_time = df_input[col_names_timestamp]
 	df_in = df_input[col_names_input]
 	df_out = df_input[col_names_output]
-	
+
 	logger.info_end(f"Done in {timer}")
-	
+
 	return df_time, df_in, df_out
 
 
@@ -76,10 +78,10 @@ def select_columns_2(df_input: pd.DataFrame, a_cols: List[str], b_cols: List[str
 	"""
 	logger.info_begin("Splitting columns (2 groups)...")
 	timer = Timer()
-	
+
 	df_a = df_input[a_cols]
 	df_b = df_input[b_cols]
-	
+
 	logger.info_end(f"Done in {timer}")
-	
+
 	return df_a, df_b

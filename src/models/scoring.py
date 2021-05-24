@@ -1,9 +1,8 @@
 """
 	This module collects functions used to score a model.
 """
-from sktime.performance_metrics.forecasting import mape_loss
-
 import numpy as np
+from sktime.performance_metrics.forecasting import mape_loss
 
 from utils.logger import Logger
 from utils.timer import Timer

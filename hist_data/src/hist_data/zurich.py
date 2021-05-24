@@ -93,16 +93,15 @@ Weather measures available:
    aus der Himmelshalbkugel zusammen.
 """
 
+from datetime import datetime
 from io import StringIO
 
 import pandas
 import requests
-from datetime import datetime
 from dateutil.tz import tz
+from hist_data.common import add_columns, table_exists
 from sqlalchemy.engine import Connection
 from tqdm import tqdm
-
-from hist_data.common import add_columns, table_exists
 
 START_YEAR = 2001
 END_YEAR = 2021
@@ -113,79 +112,79 @@ ZURICH_TABLE = 'zurich'
 
 
 def zurich_hourly_air_data(year):
-    r = requests.get(
-        'https://data.stadt-zuerich.ch/dataset/ugz_luftschadstoffmessung_stundenwerte/download/'
-        f'ugz_ogd_air_h1_{year}.csv')
-    text = StringIO(r.content.decode('utf-8'))
-    df = pandas.read_csv(text, sep=',', parse_dates=[0])
-    df.drop(columns=["Intervall", "Einheit", "Status"], inplace=True)
-    df.rename(columns={
-        "Datum": "date",
-        "Standort": "place",
-        "Parameter": "measure",
-        "Wert": "value",
-    }, inplace=True)
-    df = df[df['measure'].isin(('PM10', 'PM2.5'))]
-    df['item'] = df['place'] + '.' + df['measure']
-    df['date'] = df['date'].dt.tz_convert('UTC')
-    df = df.pivot(index='date', columns='item', values='value')
-    df.index.name = 'date'
-    return df
+	r = requests.get(
+		'https://data.stadt-zuerich.ch/dataset/ugz_luftschadstoffmessung_stundenwerte/download/'
+		f'ugz_ogd_air_h1_{year}.csv')
+	text = StringIO(r.content.decode('utf-8'))
+	df = pandas.read_csv(text, sep=',', parse_dates=[0])
+	df.drop(columns=["Intervall", "Einheit", "Status"], inplace=True)
+	df.rename(columns={
+		"Datum": "date",
+		"Standort": "place",
+		"Parameter": "measure",
+		"Wert": "value",
+	}, inplace=True)
+	df = df[df['measure'].isin(('PM10', 'PM2.5'))]
+	df['item'] = df['place'] + '.' + df['measure']
+	df['date'] = df['date'].dt.tz_convert('UTC')
+	df = df.pivot(index='date', columns='item', values='value')
+	df.index.name = 'date'
+	return df
 
 
 def zurich_hourly_weather_data(year):
-    r = requests.get(
-        'https://data.stadt-zuerich.ch/dataset/ugz_meteodaten_stundenmittelwerte/download/'
-        f'ugz_ogd_meteo_h1_{year}.csv')
-    text = StringIO(r.content.decode('utf-8'))
-    df = pandas.read_csv(text, sep=',', parse_dates=[0])
-    df.drop(columns=["Intervall", "Einheit", "Status"], inplace=True)
-    df.rename(columns={
-        "Datum": "date",
-        "Standort": "place",
-        "Parameter": "measure",
-        "Wert": "value",
-    }, inplace=True)
-    df = df[df['measure'].isin(('T', 'rH', 'Hr', 'p'))]
-    df['item'] = df['place'] + '.' + df['measure'].map({
-        "T": "Temperature",
-        "rH": "Humidity",
-        "Hr": "Humidity",
-        "p": "Pressure",
-    })
-    df['date'] = df['date'].dt.tz_convert('UTC')
-    df = df.pivot(index='date', columns='item', values='value')
-    df.index.name = 'date'
-    return df
+	r = requests.get(
+		'https://data.stadt-zuerich.ch/dataset/ugz_meteodaten_stundenmittelwerte/download/'
+		f'ugz_ogd_meteo_h1_{year}.csv')
+	text = StringIO(r.content.decode('utf-8'))
+	df = pandas.read_csv(text, sep=',', parse_dates=[0])
+	df.drop(columns=["Intervall", "Einheit", "Status"], inplace=True)
+	df.rename(columns={
+		"Datum": "date",
+		"Standort": "place",
+		"Parameter": "measure",
+		"Wert": "value",
+	}, inplace=True)
+	df = df[df['measure'].isin(('T', 'rH', 'Hr', 'p'))]
+	df['item'] = df['place'] + '.' + df['measure'].map({
+		"T": "Temperature",
+		"rH": "Humidity",
+		"Hr": "Humidity",
+		"p": "Pressure",
+	})
+	df['date'] = df['date'].dt.tz_convert('UTC')
+	df = df.pivot(index='date', columns='item', values='value')
+	df.index.name = 'date'
+	return df
 
 
 def zurich_hourly_data(year):
-    df_air = zurich_hourly_air_data(year)
-    df_weather = zurich_hourly_weather_data(year)
-    return df_air.merge(df_weather, how='outer', on='date')
+	df_air = zurich_hourly_air_data(year)
+	df_weather = zurich_hourly_weather_data(year)
+	return df_air.merge(df_weather, how='outer', on='date')
 
 
 def zurich_download_all(con: Connection):
-    print(f'Retrieving data for the city of Zurich from {START_YEAR} to {END_YEAR}')
-    con.execute(f'DROP TABLE IF EXISTS {ZURICH_TABLE}')
+	print(f'Retrieving data for the city of Zurich from {START_YEAR} to {END_YEAR}')
+	con.execute(f'DROP TABLE IF EXISTS {ZURICH_TABLE}')
 
-    for year in tqdm(range(START_YEAR, END_YEAR + 1)):
-        df = zurich_hourly_data(year)
-        add_columns(ZURICH_TABLE, df, con)
-        df.to_sql(ZURICH_TABLE, if_exists='append', con=con)
+	for year in tqdm(range(START_YEAR, END_YEAR + 1)):
+		df = zurich_hourly_data(year)
+		add_columns(ZURICH_TABLE, df, con)
+		df.to_sql(ZURICH_TABLE, if_exists='append', con=con)
 
-    print('Done!')
+	print('Done!')
 
 
 def zurich_update_current_year(con: Connection):
-    year = datetime.now(tz_local).year
-    print(f'Retrieving data for the city of Zurich for {year}')
-    year_start = datetime(year, 1, 1, 0, 0, 0, 0, tzinfo=tz_local)
-    df = zurich_hourly_data(year)
-    if table_exists(ZURICH_TABLE, con):
-        add_columns(ZURICH_TABLE, df, con)
-        con.execute(f"DELETE FROM {ZURICH_TABLE} WHERE date >= '{year_start.isoformat()}'")
-        df.to_sql(ZURICH_TABLE, if_exists='append', con=con)
-    else:
-        df.to_sql(ZURICH_TABLE, con=con)
-    print('Done!')
+	year = datetime.now(tz_local).year
+	print(f'Retrieving data for the city of Zurich for {year}')
+	year_start = datetime(year, 1, 1, 0, 0, 0, 0, tzinfo=tz_local)
+	df = zurich_hourly_data(year)
+	if table_exists(ZURICH_TABLE, con):
+		add_columns(ZURICH_TABLE, df, con)
+		con.execute(f"DELETE FROM {ZURICH_TABLE} WHERE date >= '{year_start.isoformat()}'")
+		df.to_sql(ZURICH_TABLE, if_exists='append', con=con)
+	else:
+		df.to_sql(ZURICH_TABLE, con=con)
+	print('Done!')

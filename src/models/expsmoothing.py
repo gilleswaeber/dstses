@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sktime.forecasting.arima import AutoARIMA
+from sktime.forecasting.exp_smoothing import ExponentialSmoothing
 from sktime.forecasting.model_selection import temporal_train_test_split
 
 from models.scoring import eval_model_mape
@@ -9,7 +9,7 @@ from preprocessing.moving_average import moving_average
 from utils.logger import Logger
 from utils.timer import Timer
 
-logger = Logger("Experiment")
+logger = Logger("Exp Smoothing")
 timer_script = Timer()
 
 
@@ -54,11 +54,11 @@ def transform_data(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series,
 	return y, x
 
 
-def train_model_autoarima(y, x, output: bool = True) -> AutoARIMA:
+def train_model_expsmooth(y, x, output: bool = True) -> ExponentialSmoothing:
 	if output:
 		logger.info_begin("Training AutoARIMA model...")
 		timer = Timer()
-	model = AutoARIMA()
+	model = ExponentialSmoothing()
 
 	model.fit(y, x)
 
@@ -67,7 +67,7 @@ def train_model_autoarima(y, x, output: bool = True) -> AutoARIMA:
 	return model
 
 
-def prepare_model(timeseries: pd.DataFrame, output: bool = True) -> AutoARIMA:
+def prepare_model(timeseries: pd.DataFrame, output: bool = True):
 	if output:
 		logger.info("Running script...")
 
@@ -76,9 +76,8 @@ def prepare_model(timeseries: pd.DataFrame, output: bool = True) -> AutoARIMA:
 	smooth_timeseries = moving_average(imputed_timeseries, output)
 	y, x = transform_data(smooth_timeseries, output)
 	y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
-	model = train_model_autoarima(y_train, x_train, output)
+	model = train_model_expsmooth(y_train, x_train, output)
 	score = eval_model_mape(model, y_test, x_test, output)
 	if output:
 		logger.info(f"Score of model: {score:.04f}")
 		logger.info(f"Completed script in {timer_script}")
-	return model

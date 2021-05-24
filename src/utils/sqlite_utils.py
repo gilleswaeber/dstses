@@ -1,6 +1,7 @@
-import sqlalchemy
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+import sqlalchemy
 
 db_file = Path(__file__).parent.parent.parent.absolute() / "hist_data/data/hist_data.sqlite"
 headers_nabel = ["PM10", "PM2.5", "Temperature", "Rainfall"]

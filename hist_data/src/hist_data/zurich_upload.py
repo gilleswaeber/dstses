@@ -3,9 +3,9 @@ from hist_data.zurich import ZURICH_TABLE
 
 
 def run():
-    with get_engine().connect() as con:
-        upload_influx_db(con, ZURICH_TABLE)
+	with get_engine().connect() as con:
+		upload_influx_db(con, ZURICH_TABLE)
 
 
 if __name__ == '__main__':
-    run()
+	run()

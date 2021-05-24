@@ -2,7 +2,8 @@
 Matthias Baumann <matthias-baumann@outlook.com>
 v0.1: First draft
 
-The project features mass-data accumulation through an IoT Sensor, Warehousing and Processing. The future idea of usage is to integrate the measured data with additional datasets.
+The project features mass-data accumulation through an IoT Sensor, Warehousing and Processing.
+The future idea of usage is to integrate the measured data with additional datasets.
 
 
 :stem:
@@ -11,6 +12,7 @@ The project features mass-data accumulation through an IoT Sensor, Warehousing a
 
 
 == Directory Structure
+
 |===
 | Directory | Description
 | docker | Docker container used as virtual development environment
@@ -24,11 +26,15 @@ The project features mass-data accumulation through an IoT Sensor, Warehousing a
 |===
 
 == Installation
-The installation is prepared for Linux systems in anaconda.sh. If you have an Windows computer just use Anaconda, download the installer from anaconda.com[anaconda website].
 
-WARNING: Currently, installing RPy2 failes under the Linux environment (others were not tested). Do not try! It is not worth your time, since conda makes faults in the installation
-procedure. Furthermore, changing python versions, as suggested by the tool, does not help your case, even though it looks promising at first. Further, investigation is already
-underway with Nico.
+The installation is prepared for Linux systems in anaconda.sh.
+If you have an Windows computer just use Anaconda, download the installer from anaconda.com[anaconda website].
+
+WARNING: Currently, installing RPy2 failes under the Linux environment (others were not tested).
+Do not try!
+It is not worth your time, since conda makes faults in the installation procedure.
+Furthermore, changing python versions, as suggested by the tool, does not help your case, even though it looks promising at first.
+Further, investigation is already underway with Nico.
 
 == Running
 
@@ -40,8 +46,8 @@ jupyter notebook
 
 The browser should start and present you the notebooks, in the directory your currently in, and let's you select one.
 
-TIP: Select under kbd:[kernel] -> kbd:[change kernel] -> kbd:[stes], this activates the user installed kernel, which ensures that you definitely are in
-the venv while you execute stuff in the notebook. If you do not see that kernel, check whether your in the venv (stes).
+TIP: Select under kbd:[kernel] -> kbd:[change kernel] -> kbd:[stes], this activates the user installed kernel, which ensures that you definitely are in the venv while you execute stuff in the notebook.
+If you do not see that kernel, check whether your in the venv (stes).
 
 == Documentation
 
