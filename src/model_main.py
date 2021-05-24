@@ -108,7 +108,7 @@ async def main():
 
 
 
-	trainers = [to_thread(f, config=config, data=df_timeseries_complete) for f in [train_or_load_ARIMA, train_or_load_LSTM]]
+	trainers = [to_thread(f, config=config, data=smooth_timeseries) for f in [train_or_load_ARIMA, train_or_load_LSTM]]
 	models = await gather(trainers)
 	[model.store(config) for model in models] # Stores if not existing. Does NOT OVERWRITE!!!
 
