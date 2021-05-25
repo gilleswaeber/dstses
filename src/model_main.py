@@ -1,7 +1,10 @@
+import asyncio
 import configparser
 from asyncio import gather
 
 from sktime.forecasting.model_selection import temporal_train_test_split
+
+from models.modelholder import ModelHolder
 from preprocessing.imputing import impute_simple_imputer
 from preprocessing.moving_average import moving_average
 from utils.threading import to_thread
@@ -86,6 +89,9 @@ def chop_first_fringe(timeseries: pd.DataFrame) -> pd.DataFrame:
 
 	return timeseries
 
+def main_executor():
+	asyncio.get_running_loop().run_until_complete(main())
+
 async def main():
 	print_header()
 	timer_main = Timer()
@@ -103,13 +109,14 @@ async def main():
 	df_timeseries = chop_first_fringe(df_timeseries_complete)
 	imputed_timeseries = impute_simple_imputer(df_timeseries)
 	smooth_timeseries = moving_average(imputed_timeseries)
-	df_timestamps, df_input, df_output = select_columns_3(smooth_timeseries, config, "preprocessing")
+	df_input, df_output = select_columns_3(smooth_timeseries, config, "preprocessing")
 	y_train, y_test, x_train, x_test = temporal_train_test_split(df_output, df_input, test_size=0.1)
 
+	models = [ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
+			  ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config)]
 
-
-	trainers = [to_thread(f, config=config, data=smooth_timeseries) for f in [train_or_load_ARIMA, train_or_load_LSTM]]
-	models = await gather(trainers)
+	trainers = [to_thread(model.trainer, config=model.config, data=smooth_timeseries) for model in models]
+	models = await gather(*trainers)
 	[model.store(config) for model in models] # Stores if not existing. Does NOT OVERWRITE!!!
 
 	forecast_test = [model.predict(x=df_input, fh=5) for model in models]
@@ -126,7 +133,7 @@ async def main():
 
 	with InfluxSensorData(config=config, name="influx") as client:
 		data = client.get_data()
-		imputed_data = impute_simple_imputer(data[1:])
+		imputed_data = impute_simple_imputer(data)
 		avg_data = moving_average(imputed_data)
 		forecast_list = [model.predict(x=avg_data, fh=5) for model in models]
 		forecast=sum(forecast_list)/len(forecast_list)

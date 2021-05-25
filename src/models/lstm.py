@@ -108,7 +108,7 @@ def train_lstm_model(data: pd.DataFrame) -> LSTMModel:
 	model = LSTMModel(vars=3)
 
 	# extract the data with a sliding window of length 20
-	x_train, y_train = prepare_window_off_by_1(data[:-50], 20)
+	x_train, y_train = prepare_window_off_by_1(data, 20)
 
 	model.fit(y=y_train, x=x_train, epochs=10)
 

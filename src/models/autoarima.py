@@ -61,7 +61,6 @@ class ArimaModel:
 		else:
 			self.model = model
 
-	@DeprecationWarning
 	def load_dataset(self, timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, pd.DataFrame):
 		if output:
 			logger.info("Loading dataset...")
