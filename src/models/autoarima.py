@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 from configparser import ConfigParser
 
@@ -32,13 +31,17 @@ def transform_data(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series,
 		logger.info("Transforming data...")
 		timer = Timer()
 	# create x and y from the dataset (exclude date and y from x)
-	y = timeseries[filter(lambda v: "PM10" in v, timeseries.columns)].squeeze()
+	y = timeseries[filter(lambda v: "PM10" in v, timeseries.columns)]
+	y_columns = len(y.columns)
 	x = timeseries.drop(labels=get_labels(timeseries.columns, ["PM10", "PM2.5", "PM1"]) + ["date"], axis=1,
 						errors='ignore')
+	x_series = pd.Series()
+	for i in range(y_columns):
+		x_series = x_series.append(x)
 
 	if output:
 		logger.info(f'Done in {timer}')
-	return y, x
+	return y.squeeze(axis=1), x_series
 
 
 def train_model_autoarima(y, x, output: bool = True) -> ARIMA:
@@ -50,6 +53,7 @@ def train_model_autoarima(y, x, output: bool = True) -> ARIMA:
 	model.fit(y, x)
 
 	if output:
+		model.summary()
 		logger.info(f'Done in {timer}')
 	return model
 
@@ -61,28 +65,10 @@ class ArimaModel:
 		else:
 			self.model = model
 
-	def load_dataset(self, timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, pd.DataFrame):
-		# if output:
-		# 	logger.info("Loading dataset...")
-		# 	timer = Timer()
-
-		# select only intervals where all values are available
-		# fvi = np.max([timeseries[col].first_valid_index() for col in timeseries.columns])
-		# drop_indices = np.arange(0, fvi + 1)
-		# timeseries = timeseries.drop(drop_indices)
-
-		# drop the date column because it is not a numeric value
-		# timeseries = timeseries.drop(labels=["date"], axis=1)
-		# if output:
-		# 	logger.info(f'Done in {timer}')
-
-		return timeseries
-
 	def prepare_model(self, timeseries: pd.DataFrame, output: bool = True) -> ARIMA:
 		if output:
 			logger.info("Running script...")
 
-		# timeseries = self.load_dataset(timeseries, output)
 		imputed_timeseries = impute_simple_imputer(timeseries, output)
 		smooth_timeseries = moving_average(imputed_timeseries, output)
 		y, x = transform_data(smooth_timeseries, output)
