@@ -115,7 +115,7 @@ async def main():
 	models = [ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
 			  ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config)]
 
-	trainers = [to_thread(model.trainer, config=model.config, data=smooth_timeseries) for model in models]
+	trainers = [to_thread(model.trainer, config=model.config, data=imputed_timeseries) for model in models]
 	models = await gather(*trainers)
 	[model.store(config) for model in models] # Stores if not existing. Does NOT OVERWRITE!!!
 
@@ -142,4 +142,4 @@ async def main():
 
 # if this is the main file, then run the main function directly
 if __name__ == "__main__":
-	main()
+	main_executor()

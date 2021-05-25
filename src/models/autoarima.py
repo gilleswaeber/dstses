@@ -62,18 +62,19 @@ class ArimaModel:
 			self.model = model
 
 	def load_dataset(self, timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, pd.DataFrame):
-		if output:
-			logger.info("Loading dataset...")
-			timer = Timer()
+		# if output:
+		# 	logger.info("Loading dataset...")
+		# 	timer = Timer()
 
 		# select only intervals where all values are available
-		fvi = np.max([timeseries[col].first_valid_index() for col in timeseries.columns])
-		drop_indices = np.arange(0, fvi + 1)
-		timeseries = timeseries.drop(drop_indices)
+		# fvi = np.max([timeseries[col].first_valid_index() for col in timeseries.columns])
+		# drop_indices = np.arange(0, fvi + 1)
+		# timeseries = timeseries.drop(drop_indices)
+
 		# drop the date column because it is not a numeric value
-		timeseries = timeseries.drop(labels=["date"], axis=1)
-		if output:
-			logger.info(f'Done in {timer}')
+		# timeseries = timeseries.drop(labels=["date"], axis=1)
+		# if output:
+		# 	logger.info(f'Done in {timer}')
 
 		return timeseries
 
@@ -81,7 +82,7 @@ class ArimaModel:
 		if output:
 			logger.info("Running script...")
 
-		timeseries = self.load_dataset(timeseries, output)
+		# timeseries = self.load_dataset(timeseries, output)
 		imputed_timeseries = impute_simple_imputer(timeseries, output)
 		smooth_timeseries = moving_average(imputed_timeseries, output)
 		y, x = transform_data(smooth_timeseries, output)
@@ -107,6 +108,7 @@ def train_or_load_ARIMA(config: ConfigParser, data: pd.DataFrame) -> ArimaModel:
 	if os.path.exists(p):
 		return load(config)
 	else:
+		data = moving_average(data)
 		model = ArimaModel()
 		model.prepare_model(data)
 		return model

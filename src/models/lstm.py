@@ -82,7 +82,7 @@ class LSTMModel:
 		return np.array(predicted)
 
 	def store(self, config: ConfigParser):
-		path = config["storage_location"] + "/autoarima.pkl"
+		path = config["storage_location"] + "/lstm.pkl"
 		if not os.path.exists(path):
 			self.model.save(path)
 
@@ -90,7 +90,7 @@ class LSTMModel:
 		return self.predict_next(x)
 
 def train_or_load_LSTM(config: ConfigParser, data: pd.DataFrame) -> LSTMModel:
-	p = config["storage_location"] + "/autoarima.pkl"
+	p = config["storage_location"] + "/lstm.pkl"
 	if os.path.exists(p):
 		return load(config)
 	else:
@@ -99,10 +99,11 @@ def train_or_load_LSTM(config: ConfigParser, data: pd.DataFrame) -> LSTMModel:
 
 
 def load(config: ConfigParser) -> LSTMModel:
-	path = config["storage_location"] + "/autoarima.pkl"
+	path = config["storage_location"] + "/lstm.pkl"
 	return LSTMModel(vars=0, model=load_model(path))
 
 def train_lstm_model(data: pd.DataFrame) -> LSTMModel:
+	"""Several things to do here: split by location, do a gap detection to split in chunks, pass each chunk through the sliding window function, …"""
 	logger.info("Training LSTM...")
 	timer = Timer()
 	model = LSTMModel(vars=3)
