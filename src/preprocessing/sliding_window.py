@@ -43,6 +43,10 @@ def sliding_window_view(x, window_shape, axis=None, *, subok=False, writeable=Fa
 					  subok=subok, writeable=writeable)
 
 
+def slide_rows(data: np.ndarray, length: int):
+	return np.swapaxes(sliding_window_view(data, window_shape=length, axis=0), 1, 2)
+
+
 def prepare_window_next(data: np.ndarray, length: int):
 	"""Prepare a dataset for training using a sliding window
 

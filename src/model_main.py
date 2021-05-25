@@ -75,10 +75,8 @@ def chop_first_fringe(timeseries: pd.DataFrame) -> pd.DataFrame:
 
 	# select only intervals where all values are available
 	fvi = np.max([timeseries[col].first_valid_index() for col in timeseries.columns])
-	drop_indices = np.arange(0, fvi + 1)
-	timeseries = timeseries.drop(drop_indices)
-	# drop the date column because it is not a numeric value
-	timeseries = timeseries.drop(labels=["date"], axis=1)
+	timeseries = timeseries[fvi:].reset_index(drop=True)
+	timeseries.set_index('date', inplace=True)
 	logger.info(f'Done in {timer}')
 
 	return timeseries
@@ -93,7 +91,7 @@ async def main():
 	config = default_config()
 
 	# read and prepare dataset for training
-	df_timeseries_complete = load_dataset("test_adapter", config)
+	df_timeseries_complete = load_dataset("zurich_adapter", config)
 
 	print(df_timeseries_complete[:1])
 	df_timeseries = chop_first_fringe(df_timeseries_complete)
