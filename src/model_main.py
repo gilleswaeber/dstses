@@ -1,33 +1,27 @@
 import asyncio
-import configparser
 from asyncio import gather
-
-from sktime.forecasting.model_selection import temporal_train_test_split
-
-from models.modelholder import ModelHolder
-from preprocessing.imputing import impute_simple_imputer
-from preprocessing.moving_average import moving_average
-from utils.threading import to_thread
-import os
 from configparser import ConfigParser
-from pathlib import Path
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
+from sktime.forecasting.model_selection import temporal_train_test_split
 
 from adapters.data_adapter import IDataAdapter
 from adapters.hist_data_adapter import HistDataAdapter
 from adapters.influx_sensordata import InfluxSensorData
-from models.autoarima import train_or_load_ARIMA
 from models.lstm import train_or_load_LSTM
+from models.modelholder import ModelHolder
 from preprocessing.column_selector import select_columns_3
+from preprocessing.imputing import impute_simple_imputer
+from preprocessing.moving_average import moving_average
+from utils.config import default_config
 from utils.logger import Logger
+from utils.threading import to_thread
 from utils.timer import Timer
 
 logger: Logger = Logger(module_name="Model 1")
 script_timer = Timer()
-CONFIG_FILE = Path(os.getenv("FILE_PATH", __file__)).parent.absolute() / "resources" / "config.ini"
 
 
 # structure of time series: rows: instances, cols: variables, depth: series of values
@@ -90,17 +84,13 @@ def chop_first_fringe(timeseries: pd.DataFrame) -> pd.DataFrame:
 	return timeseries
 
 def main_executor():
-	asyncio.get_running_loop().run_until_complete(main())
+	asyncio.run(main())
 
 async def main():
 	print_header()
 	timer_main = Timer()
 
-	print(CONFIG_FILE)
-	config = ConfigParser()
-	config._interpolation = configparser.ExtendedInterpolation()
-	config['DEFAULT']['resources_path'] = str(Path(CONFIG_FILE).parent.absolute())
-	config.read(str(CONFIG_FILE))
+	config = default_config()
 
 	# read and prepare dataset for training
 	df_timeseries_complete = load_dataset("test_adapter", config)
@@ -112,7 +102,7 @@ async def main():
 	df_input, df_output = select_columns_3(smooth_timeseries, config, "preprocessing")
 	y_train, y_test, x_train, x_test = temporal_train_test_split(df_output, df_input, test_size=0.1)
 
-	models = [ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
+	models = [#ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
 			  ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config)]
 
 	trainers = [to_thread(model.trainer, config=model.config, data=imputed_timeseries) for model in models]

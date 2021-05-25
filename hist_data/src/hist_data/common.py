@@ -1,31 +1,21 @@
 from datetime import datetime
 from itertools import chain
-from pathlib import Path
 
 import pandas
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection
 
-"""
-For the InfluxDB config, create a file config_local.py with: ```py
-token = "WRITE_ACESS_TOKEN_CODE"
-org = "INFLUX_DB_ORG_NAME"
-bucket = "BUCKET_NAME"
-```
-"""
-
-HIST_DATA_SQLITE_DB = Path(__file__).parent.parent.parent.absolute() / "data" / 'hist_data.sqlite'
+from utils.config import INFLUXDB_HIST_DATA_BUCKET, HIST_DATA_DB, default_config
 
 
 def get_engine() -> Connection:
-	return create_engine(f'sqlite:///{HIST_DATA_SQLITE_DB}', echo=False)
+	return create_engine(f'sqlite:///{HIST_DATA_DB}', echo=False)
 
 
 def upload_influx_db(con: Connection, table: str, start_time: datetime = None):
-	from config_local import org, token, bucket
 	from influxdb_client import InfluxDBClient
 	from influxdb_client.client.write_api import SYNCHRONOUS
-	client = InfluxDBClient(url="https://eu-central-1-1.aws.cloud2.influxdata.com", token=token)
+	client = InfluxDBClient.from_config_file(default_config()['influx']['config'])
 	write_api = client.write_api(write_options=SYNCHRONOUS)
 
 	cols = set(con.execute(f'SELECT * FROM {table} LIMIT 1').keys())
@@ -66,7 +56,7 @@ def upload_influx_db(con: Connection, table: str, start_time: datetime = None):
 	print('SQL query:', query)
 	# print('\n'.join(sequence))
 
-	write_api.write(bucket, org, sequence)
+	write_api.write(INFLUXDB_HIST_DATA_BUCKET, records=sequence)
 
 	print('Done!')
 

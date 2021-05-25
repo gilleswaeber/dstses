@@ -8,6 +8,8 @@ from adapters import data_adapter
 from utils import logger
 from datetime import datetime
 
+from utils.config import CONFIG_INFLUXDB, default_config
+
 """
 	Loads the influx db server data and fills the data into the dataframe.
 	This class needs the configurtion of Influxdbclient in the config file, for more see:
@@ -39,6 +41,7 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 									  f'|> range(start: {self.start})'
 									  '|> filter(fn: (r) => r["_measurement"] == "pollution" or r["_measurement"] == "weather")'
 									  '|> aggregateWindow(every: 1h, fn: mean, createEmpty: false)'
+									  '|> sort(columns: ["_time"], desc: false)'
 									  '|> yield(name: "mean")')
 
 	def send_data(self, value):
@@ -48,3 +51,12 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 
 	def __exit__(self):
 		self.client.close()
+
+
+if __name__ == '__main__':
+	conf = default_config()
+	conf['DEFAULT']['bucket'] = 'hist_data'
+	conf['DEFAULT']['start'] = '-60d'
+	adapt = InfluxSensorData(conf, 'DEFAULT')
+	data = adapt.get_data()
+	print(data)
