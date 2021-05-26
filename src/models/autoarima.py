@@ -1,7 +1,7 @@
 import pandas as pd
 from configparser import ConfigParser
 
-from sktime.forecasting.arima import ARIMA
+from sktime.forecasting.arima import AutoARIMA
 from sktime.forecasting.model_selection import temporal_train_test_split
 
 from models.scoring import eval_model_mape
@@ -48,7 +48,7 @@ def train_model_autoarima(y, x, output: bool = True) -> ARIMA:
 	if output:
 		logger.info("Training AutoARIMA model...")
 		timer = Timer()
-	model = ARIMA()
+	model = AutoARIMA(suppress_warnings=True, error_action='ignore')
 
 	model.fit(y, x)
 

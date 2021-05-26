@@ -1,14 +1,12 @@
 from configparser import ConfigParser
-from pathlib import Path
+from datetime import datetime
 
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 from adapters import data_adapter
 from utils import logger
-from datetime import datetime
-
-from utils.config import CONFIG_INFLUXDB, default_config
+from utils.config import default_config
 
 """
 	Loads the influx db server data and fills the data into the dataframe.
