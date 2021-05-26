@@ -2,6 +2,7 @@
 	This file contains some functions that graph datasets, either loaded or generated.
 """
 import os
+import sys
 
 from utils.config import default_config
 
@@ -12,9 +13,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from utils.sqlite_utils import get_engine, get_time_series
-
-# attempt to use the config framework
-config = default_config()
 
 
 def graph_random_noise():
@@ -33,6 +31,13 @@ def graph_comparison_our_vs_hist():
 	"""
 		Graphs a day of our data and the same day of historical data
 	"""
+	config = default_config()
+	for a, section in config.items():
+		print(a)
+		for b in section.items():
+			print("    ", b)
+	#sys.exit(0)
+	
 	adapter_hist = HistDataAdapter(config, "graph_comparison_our_hist_hist")
 	adapter_influx = InfluxSensorData(config, "graph_comparison_our_hist_influx")
 	

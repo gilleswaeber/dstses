@@ -6,6 +6,8 @@ from influxdb_client import InfluxDBClient
 from adapters import data_adapter
 from utils import logger
 
+import sys
+
 """
 	Loads the influx db server data and fills the data into the dataframe.
 	This class needs the configurtion of Influxdbclient in the config file, for more see:
@@ -31,10 +33,10 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 
 	def get_data(self):
 		with InfluxDBClient.from_config_file(
-			str(Path(self.config["resources_path"]) / self.config["influx"]["config"])
+			str(Path(self.config["DEFAULT"]["resources_path"]) / self.config["influx"]["config"])
 		) as client:
 			query = client.query_api()
-
+			
 			return query.query_data_frame(f'from(bucket:"{self.bucket}")'
 										  f'|> range(start: {self.start})'
 										  '|> filter(fn: (r) => r["_measurement"] == "pollution" or r["_measurement"] == "weather")'
