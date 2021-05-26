@@ -52,7 +52,7 @@ def graph_model_arima():
 	y_pred = model.predict(X=x_test, fh=np.linspace(1, fh, fh))
 
 	fig, ax = plt.subplots(1)
-	ax.set_title(f"AutoARIMA model, {fh}h forecast")
+	ax.set_title(f"ARIMA model, {fh}h forecast")
 	ax.plot(y_train, color='blue')
 	ax.plot(y_test, color='green')
 	ax.plot(y_pred, color='red')

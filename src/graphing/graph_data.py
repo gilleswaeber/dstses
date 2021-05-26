@@ -3,8 +3,7 @@
 """
 import os
 
-from configparser import ConfigParser
-from pathlib import Path
+from utils.config import default_config
 
 from adapters.influx_sensordata import InfluxSensorData
 from adapters.hist_data_adapter import HistDataAdapter
@@ -15,10 +14,7 @@ import numpy as np
 from utils.sqlite_utils import get_engine, get_time_series
 
 # attempt to use the config framework
-CONFIG_FILE = Path(os.getenv("FILE_PATH", __file__)).parent.parent.absolute() / "resources" / "config.ini"
-config = ConfigParser()
-config.read(str(CONFIG_FILE))
-config['DEFAULT']['resources_path'] = str(Path(CONFIG_FILE).parent.absolute())
+config = default_config()
 
 
 def graph_random_noise():
