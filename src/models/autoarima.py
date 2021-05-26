@@ -58,7 +58,7 @@ def train_model_autoarima(y, x, output: bool = True) -> AutoARIMA:
 	if output:
 		logger.info_begin("Training AutoARIMA model...")
 		timer = Timer()
-	model = AutoARIMA()
+	model = AutoARIMA(suppress_warnings=True, error_action='ignore')
 
 	model.fit(y, x)
 

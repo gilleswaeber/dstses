@@ -9,3 +9,4 @@ pmdarima
 tensorflow
 keras
 matplotlib
+sktime

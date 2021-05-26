@@ -35,7 +35,10 @@ from typing import Callable, Dict
 
 from graph_data import graph_random_noise
 from graph_models import graph_model_autoarima
-from graph_preprocessing import graph_moving_average, graph_simple_imputer
+from graph_models import graph_model_arima
+from graph_models import graph_model_exp_smoothing
+from graph_preprocessing import graph_moving_average
+from graph_preprocessing import graph_simple_imputer
 from utils.logger import Logger
 from utils.timer import Timer
 
@@ -113,5 +116,7 @@ if __name__ == "__main__":
 		'moving_average': Command('moving_average', 'Graphs the effects of moving average', graph_moving_average),
 		'simple_imputer': Command('simple_imputer', 'Graphs the effects of a simple imputer', graph_simple_imputer),
 		'autoarima': Command('autoarima', 'Graphs the predictions of AutoARIMA', graph_model_autoarima),
+		'arima': Command('arima', 'Graphs the predictions of ARIMA', graph_model_arima),
+		'exp_smoothing': Command('exp_smoothing', 'Graphs the predictions of exp_smoothing', graph_model_exp_smoothing)
 	}
 	main(cmds)
