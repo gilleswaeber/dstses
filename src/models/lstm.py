@@ -4,6 +4,7 @@
 # disable tensorflow logging
 import json
 import os
+from pathlib import Path
 from typing import List
 
 from pandas import DataFrame
@@ -94,15 +95,14 @@ class LSTMModel:
 
 
 def train_or_load_LSTM(config: SectionProxy, data: pd.DataFrame) -> LSTMModel:
-	p = config["storage_location"] + "/lstm.pkl"
-	if os.path.exists(p):
-		return load(config)
+	p = Path(config["storage_location"]) / "lstm.pkl"
+	if p.exists():
+		return load(config, p)
 	else:
 		return train_lstm_model_predict(config, data)
 
 
-def load(config: SectionProxy) -> LSTMModel:
-	path = config["storage_location"] + "/lstm.pkl"
+def load(config: SectionProxy, path: Path) -> LSTMModel:
 	return LSTMModel(vars_in=0, vars_out=0, model=load_model(path))
 
 
