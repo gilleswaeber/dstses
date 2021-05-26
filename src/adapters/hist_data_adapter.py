@@ -52,9 +52,7 @@ class HistDataAdapter(data_adapter.IDataAdapter):
 		return r.first() is not None
 
 	def get_data(self):
-		self.logger.info_begin(f"Loading sqlite...")
 		with self.get_engine().connect() as con:
 			assert self.table_exists(self.dataset, con)
 			table = self.get_time_series(con, self.dataset, self.location)
-			self.logger.info_end(f"done")
 			return table
