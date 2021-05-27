@@ -1,11 +1,11 @@
 """
 	This module contains all code specifically necessary code for the LSTM model
 """
+import os
 # disable tensorflow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'  # noqa
 
 import json
-import os
 from pathlib import Path
 from typing import List, Tuple, Dict
 
