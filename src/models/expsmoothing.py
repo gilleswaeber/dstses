@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 from sktime.forecasting.exp_smoothing import ExponentialSmoothing
@@ -23,7 +25,7 @@ def get_labels(labels: list, filters: list) -> list:
 	return list(set(out))
 
 
-def load_dataset(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, pd.DataFrame):
+def load_dataset(timeseries: pd.DataFrame, output: bool = True) -> Tuple[pd.Series, pd.DataFrame]:
 	if output:
 		logger.info_begin("Loading dataset...")
 		timer = Timer()
@@ -40,7 +42,7 @@ def load_dataset(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, p
 	return timeseries
 
 
-def transform_data(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, pd.DataFrame):
+def transform_data(timeseries: pd.DataFrame, output: bool = True) -> Tuple[pd.Series, pd.DataFrame]:
 	if output:
 		logger.info_begin("Transforming data...")
 		timer = Timer()

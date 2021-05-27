@@ -10,6 +10,7 @@ from sktime.forecasting.model_selection import temporal_train_test_split
 from adapters.data_adapter import IDataAdapter
 from adapters.hist_data_adapter import HistDataAdapter
 from adapters.influx_sensordata import InfluxSensorData
+from models.autoarima import train_or_load_ARIMA
 from models.lstm import train_or_load_LSTM
 from models.modelholder import ModelHolder
 from preprocessing.column_selector import select_columns_3
@@ -95,19 +96,18 @@ async def main():
 
 	print(df_timeseries_complete[:1])
 	df_timeseries = chop_first_fringe(df_timeseries_complete)
-	imputed_timeseries = impute_simple_imputer(df_timeseries)
-	smooth_timeseries = moving_average(imputed_timeseries)
-	df_input, df_output = select_columns_3(smooth_timeseries, config, "preprocessing")
-	y_train, y_test, x_train, x_test = temporal_train_test_split(df_output, df_input, test_size=0.1)
+	df_train_val, df_test = temporal_train_test_split(df_timeseries, test_size=.20)
 
-	models = [#ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
-			  ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config)]
+	models = [
+		# ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
+		ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config)
+	]
 
-	trainers = [to_thread(model.trainer, config=model.config, data=imputed_timeseries) for model in models]
+	trainers = [to_thread(model.trainer, config=model.config, data=df_train_val) for model in models]
 	models = await gather(*trainers)
-	[model.store(config) for model in models] # Stores if not existing. Does NOT OVERWRITE!!!
+	[model.store(conf) for model, conf in models]  # Stores if not existing. Does NOT OVERWRITE!!!
 
-	forecast_test = [model.predict(x=df_input, fh=5) for model in models]
+	forecast_test = [model.predict(x=df_test, fh=5) for model in models]
 
 	print(forecast_test)
 

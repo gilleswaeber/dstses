@@ -48,7 +48,7 @@ class HistDataAdapter(data_adapter.IDataAdapter):
 		prefixed = self.loc_columns(dataset, location)
 		headers = ",".join(['"date"'] + prefixed)
 		query = f'SELECT {headers} FROM {dataset} ORDER BY date'
-		return pd.read_sql_query(query, engine)
+		return pd.read_sql_query(query, engine, parse_dates='date')
 
 	def get_multiple_locations(self, con: Connection, dataset: str, locations: Sequence[str], features: Sequence[str]):
 		# make sure that the dataset exists

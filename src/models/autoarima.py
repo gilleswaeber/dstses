@@ -1,5 +1,7 @@
+from typing import Tuple
+
 import pandas as pd
-from configparser import ConfigParser
+from configparser import ConfigParser, SectionProxy
 
 from sktime.forecasting.arima import AutoARIMA
 from sktime.forecasting.model_selection import temporal_train_test_split
@@ -26,7 +28,7 @@ def get_labels(labels: list, filters: list) -> list:
 	return list(set(out))
 
 
-def transform_data(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, pd.DataFrame):
+def transform_data(timeseries: pd.DataFrame, output: bool = True) -> Tuple[pd.Series, pd.DataFrame]:
 	if output:
 		logger.info("Transforming data...")
 		timer = Timer()
@@ -44,7 +46,7 @@ def transform_data(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series,
 	return y.squeeze(axis=1), x_series
 
 
-def train_model_autoarima(y, x, output: bool = True) -> ARIMA:
+def train_model_autoarima(y, x, output: bool = True) -> AutoARIMA:
 	if output:
 		logger.info("Training AutoARIMA model...")
 		timer = Timer()
@@ -59,13 +61,13 @@ def train_model_autoarima(y, x, output: bool = True) -> ARIMA:
 
 
 class ArimaModel:
-	def __init__(self, model : ARIMA = None):
+	def __init__(self, model: AutoARIMA = None):
 		if model is None:
-			self.model = ARIMA()
+			self.model = AutoARIMA()
 		else:
 			self.model = model
 
-	def prepare_model(self, timeseries: pd.DataFrame, output: bool = True) -> ARIMA:
+	def prepare_model(self, timeseries: pd.DataFrame, output: bool = True) -> AutoARIMA:
 		if output:
 			logger.info("Running script...")
 
@@ -83,13 +85,14 @@ class ArimaModel:
 	def predict(self, x, fh: int):
 		return self.model.predict(X=x, fh=fh)
 
-	def store(self, config: ConfigParser):
+	def store(self, config: SectionProxy):
 		path = config["storage_location"] + "/autoarima.pkl"
 		if not os.path.exists(path):
 			with open(path, 'wb') as pkl:
 				pickle.dump(self.model, pkl)
 
-def train_or_load_ARIMA(config: ConfigParser, data: pd.DataFrame) -> ArimaModel:
+
+def train_or_load_ARIMA(config: ConfigParser, data: pd.DataFrame, name: str) -> ArimaModel:
 	p = config["storage_location"] + "/autoarima.pkl"
 	if os.path.exists(p):
 		return load(config)
@@ -98,6 +101,7 @@ def train_or_load_ARIMA(config: ConfigParser, data: pd.DataFrame) -> ArimaModel:
 		model = ArimaModel()
 		model.prepare_model(data)
 		return model
+
 
 def load(config: ConfigParser) -> ArimaModel:
 	path = config["storage_location"] + "/autoarima.pkl"
