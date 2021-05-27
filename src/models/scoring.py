@@ -2,7 +2,7 @@
 	This module collects functions used to score a model.
 """
 import numpy as np
-from sktime.performance_metrics.forecasting import mean_absolute_percentage_error
+from sktime.performance_metrics.forecasting import mape_loss
 
 from utils.logger import Logger
 from utils.timer import Timer
@@ -19,7 +19,7 @@ def eval_model_mape(model, y_test, x_test, output: bool = True) -> float:
 	y_pred = model.predict(X=x_test, fh=fh)
 	if output:
 		logger.info_update("Scoring")
-	error = mean_absolute_percentage_error(y_test, y_pred)
+	error = mape_loss(y_test, y_pred)
 	if output:
 		logger.info_end(f'Done in {timer}')
 	return error

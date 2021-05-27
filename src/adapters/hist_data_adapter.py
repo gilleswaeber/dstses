@@ -73,13 +73,15 @@ class HistDataAdapter(data_adapter.IDataAdapter):
 		r = con.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
 		return r.first() is not None
 
-	def get_data(self):
-		self.logger.info(f"Loading sqlite...")
+	def get_data(self, output: bool = True):
+		if output:
+			self.logger.info_begin(f"Loading sqlite...")
 		with self.get_engine().connect() as con:
 			if isinstance(self.location, str):
 				assert self.table_exists(self.dataset, con)
 				table = self.get_time_series(con, self.dataset, self.location)
 			else:
 				table = self.get_multiple_locations(con, self.dataset, self.location, self.features)
-			self.logger.info(f"Loading sqlite... done")
+			if output:
+				self.logger.info_end(f"done")
 			return table

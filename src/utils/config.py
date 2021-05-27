@@ -15,7 +15,7 @@ INFLUXDB_HIST_DATA_BUCKET = 'hist_data'
 
 
 def default_config() -> ConfigParser:
-	print(CONFIG_FILE)
+	# print(CONFIG_FILE)
 	config = ConfigParser()
 	config._interpolation = configparser.ExtendedInterpolation()
 	config['DEFAULT']['resources_path'] = str(RESOURCE_DIR.absolute())
