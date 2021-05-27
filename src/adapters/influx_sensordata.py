@@ -30,7 +30,7 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 		self.name = name
 		self.bucket = config[name]["bucket"]
 		self.start = config[name].get("start", "-30d")
-		self.client = InfluxDBClient.from_config_file(self.config["influx"]["config"])
+		self.client = InfluxDBClient.from_config_file(self.config["influx"]["config"], debug=True)
 
 	def get_data(self):
 		query = self.client.query_api()
@@ -47,7 +47,10 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 		with self.client.write_api(write_options=SYNCHRONOUS) as write_api:
 			write_api.write(point)
 
-	def __exit__(self):
+	def __enter__(self):
+		return self
+
+	def __exit__(self, type, value, traceback):
 		self.client.close()
 
 

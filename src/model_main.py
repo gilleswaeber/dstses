@@ -121,13 +121,15 @@ async def main():
 
 	logger.info("start predicting new time")
 
-	with InfluxSensorData(config=config, name="influx") as client:
-		data = client.get_data()
-		imputed_data = impute_simple_imputer(data)
-		avg_data = moving_average(imputed_data)
-		forecast_list = [model.predict(x=avg_data, fh=5) for model in models]
-		forecast=sum(forecast_list)/len(forecast_list)
-		client.send_data(forecast)
+
+# with InfluxSensorData(config=config, name="influx") as client:
+# 	data = client.get_data()
+# 	logger.warn(len(data))
+# 	imputed_data = impute_simple_imputer(data)
+# 	avg_data = moving_average(imputed_data)
+# 	forecast_list = [model.predict(x=avg_data, fh=5) for model in models]
+# 	forecast=sum(forecast_list)/len(forecast_list)
+# 	client.send_data(forecast)
 
 
 # if this is the main file, then run the main function directly

@@ -32,18 +32,13 @@ def graph_comparison_our_vs_hist():
 		Graphs a day of our data and the same day of historical data
 	"""
 	config = default_config()
-	for a, section in config.items():
-		print(a)
-		for b in section.items():
-			print("    ", b)
-	#sys.exit(0)
 	
 	adapter_hist = HistDataAdapter(config, "graph_comparison_our_hist_hist")
 	adapter_influx = InfluxSensorData(config, "graph_comparison_our_hist_influx")
 	
-	hist_data = adapter_hist.get_data()
-	our_data = adapter_influx.get_data()
+	hist_data = adapter_hist.get_data(output=False)
+	# our_data = adapter_influx.get_data()
 	
 	print()
-	print(type(hist_data))
-	print(type(our_data))
+	print(hist_data.columns)
+	#print(type(our_data))
