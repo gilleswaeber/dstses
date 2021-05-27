@@ -103,16 +103,16 @@ async def main():
 		ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config)
 	]
 
-	trainers = [to_thread(model.trainer, config=model.config, data=df_train_val) for model in models]
-	models = await gather(*trainers)
-	[model.store(conf) for model, conf in models]  # Stores if not existing. Does NOT OVERWRITE!!!
+ 	# trainers = [to_thread(model.trainer, config=model.config, data=df_train_val) for model in models]
+	# models = await gather(*trainers)
+	# [model.store(conf) for model, conf in models]  # Stores if not existing. Does NOT OVERWRITE!!!
 
-	forecast_test = [model.predict(x=df_test, fh=5) for model, config in models]
+	# forecast_test = [model.predict(x=df_test, fh=5) for model, config in models]
 
-	print(forecast_test)
+	# print(forecast_test)
 
-	plt.plot(forecast_test)
-	plt.show()
+	# plt.plot(forecast_test)
+	# plt.show()
 
 	logger.info(f"Script completed in {timer_main}.")
 	logger.info("Terminating gracefully...")
@@ -121,6 +121,7 @@ async def main():
 
 	with InfluxSensorData(config=config, name="influx") as client:
 		data = client.get_data()
+		logger.warn(len(data))
 		imputed_data = impute_simple_imputer(data)
 		avg_data = moving_average(imputed_data)
 		forecast_list = [model.predict(x=avg_data, fh=5) for model in models]

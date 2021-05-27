@@ -75,7 +75,7 @@ class HistDataAdapter(data_adapter.IDataAdapter):
 
 	def get_data(self, output: bool = True):
 		if output:
-			self.logger.info_begin(f"Loading sqlite...")
+			self.logger.info(f"Loading sqlite...")
 		with self.get_engine().connect() as con:
 			if isinstance(self.location, str):
 				assert self.table_exists(self.dataset, con)
@@ -83,5 +83,5 @@ class HistDataAdapter(data_adapter.IDataAdapter):
 			else:
 				table = self.get_multiple_locations(con, self.dataset, self.location, self.features)
 			if output:
-				self.logger.info_end(f"done")
+				self.logger.info(f"done")
 			return table
