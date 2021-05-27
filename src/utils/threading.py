@@ -1,6 +1,6 @@
 import functools, contextvars, asyncio
 
-async def to_thread(func, /, *args, **kwargs):
+async def to_thread(func, *args, **kwargs):
 	"""Asynchronously run function *func* in a separate thread.
 	Any *args and **kwargs supplied for this function are directly passed
 	to *func*. Also, the current :class:`contextvars.Context` is propogated,

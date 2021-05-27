@@ -12,6 +12,7 @@ from tensorflow.keras.optimizers import Adam
 from tqdm import tqdm
 
 from preprocessing.sliding_window import prepare_window_off_by_1, slide_rows
+from utils.config import default_config
 from utils.keras import KerasTrainCallback
 from utils.normalizer import Normalizer
 
@@ -22,9 +23,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from keras.models import Sequential, load_model
-from keras.layers import Dense, TimeDistributed
-from keras.layers import LSTM
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import Dense, TimeDistributed
+from tensorflow.keras.layers import LSTM
 
 from utils.logger import Logger
 from utils.timer import Timer
@@ -56,21 +57,22 @@ class LSTMModel:
 		if model is None:
 			# initialize model
 			self.model = Sequential()
-			self.model.add(LSTM(units=64, activation='sigmoid', input_shape=(None, vars_in), return_sequences=True))
-			self.model.add(TimeDistributed(Dense(vars_out, activation="sigmoid")))
+			self.model.add(LSTM(units=128, activation='sigmoid', input_shape=(None, vars_in), return_sequences=True))
+			self.model.add(TimeDistributed(Dense(vars_out, activation='sigmoid')))
 			# self.model.compile(loss='mean_squared_error')
 			self.model.compile(optimizer=Adam(clipnorm=1), loss='mean_squared_error')
 			self.model.summary()
 		else:
 			self.model = model
 
-	def fit(self, /, x: np.ndarray, y: np.ndarray, epochs: int):
+	def fit(self, x: np.ndarray, y: np.ndarray, epochs: int):
 
 		print(f"Shape: {x.shape}")
 		print(f"Model: {self.model.input_shape}")
 		with tqdm(total=epochs, desc='LSTM training', dynamic_ncols=True) as progress:
 			nntc = KerasTrainCallback(progress)
-			self.model.fit(x=x, y=y, batch_size=32, validation_split=1/8, use_multiprocessing=True, callbacks=[nntc], epochs=epochs, verbose=0)
+			self.model.fit(x=x, y=y, batch_size=32, validation_split=1 / 8, use_multiprocessing=True, callbacks=[nntc],
+						   epochs=epochs)
 		return self.model
 
 	def predict_next(self, start: np.ndarray) -> np.ndarray:
@@ -145,7 +147,8 @@ class LSTMConfig:
 
 def to_x_y(df: pd.DataFrame, c: LSTMConfig) -> Tuple[np.ndarray, np.ndarray]:
 	by_location = split_by_location(df)
-	chunks = [chunk for l in by_location for chunk in split_on_gaps(l, c.gap_detection) if chunk.shape[0] > c.stride_length]
+	chunks = [chunk for l in by_location for chunk in split_on_gaps(l, c.gap_detection) if
+			  chunk.shape[0] > c.stride_length]
 
 	# extract the data with a sliding window of length 20
 	x = []
@@ -176,8 +179,10 @@ def train_lstm_model_predict(config: SectionProxy, df: pd.DataFrame) -> LSTMMode
 	c = LSTMConfig(config)
 
 	x_train, y_train = to_x_y(df, c)
-
 	model = LSTMModel(vars_in=len(c.features_in), vars_out=len(c.features_out))
+
+	#x_train, y_train = prepare_window_off_by_1(df.dropna(), 10)
+	#model = LSTMModel(4, 4)
 
 	timer = Timer()
 	logger.info("Training LSTM...")
@@ -203,7 +208,10 @@ def test_lstm_model():
 	# - f is the number of features
 	# The sequence y[i, :-1, :] should equal x[i, 1:, :], i.e. is offset by one
 
-	model = train_lstm_model_predict(data)
+	conf = default_config()
+	conf['lstm']['features_in'] = '["sin", "cos", "res"]'
+	conf['lstm']['features_out'] = '["sin", "cos", "res"]'
+	model = train_lstm_model_predict(conf['lstm'], data)
 
 	x_test, y_test = prepare_window_off_by_1(data[-50:], 20)
 	y_pred = np.array([model.predict_next(x_test[i]) for i in range(x_test.shape[0])])  # model.predict(x_test, fh=10)

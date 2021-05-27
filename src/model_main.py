@@ -107,7 +107,7 @@ async def main():
 	models = await gather(*trainers)
 	[model.store(conf) for model, conf in models]  # Stores if not existing. Does NOT OVERWRITE!!!
 
-	forecast_test = [model.predict(x=df_test, fh=5) for model in models]
+	forecast_test = [model.predict(x=df_test, fh=5) for model, config in models]
 
 	print(forecast_test)
 
