@@ -13,7 +13,6 @@ from adapters.influx_sensordata import InfluxSensorData
 from models.autoarima import train_or_load_ARIMA
 from models.lstm import train_or_load_LSTM
 from models.modelholder import ModelHolder
-from preprocessing.column_selector import select_columns_3
 from preprocessing.imputing import impute_simple_imputer
 from preprocessing.moving_average import moving_average
 from utils.config import default_config
@@ -98,12 +97,14 @@ async def main():
 	df_timeseries = chop_first_fringe(df_timeseries_complete)
 	imputed_timeseries = impute_simple_imputer(df_timeseries)
 	smooth_timeseries = moving_average(imputed_timeseries)
+	smooth_timeseries.dropna(inplace=True)
 	df_train_val, df_test = temporal_train_test_split(smooth_timeseries, test_size=.20)
 	logger.warn(df_train_val)
 
 	models = [
 		ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
-		ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config)
+		ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config),
+		ModelHolder(name="lstm_seq", trainer=train_or_load_LSTM, config=config)
 	]
 
 	trainers = [to_thread(model.trainer, config=model.config, data=df_train_val) for model in models]
@@ -114,7 +115,8 @@ async def main():
 
 	print(forecast_test)
 
-	plt.plot(forecast_test)
+	plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.PM10', 'Zch_Stampfenbachstrasse.PM10_Pred']])
+	plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.Humidity', 'Zch_Stampfenbachstrasse.Temperature']])
 	plt.show()
 
 	logger.info(f"Script completed in {timer_main}.")
