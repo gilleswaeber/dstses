@@ -3,6 +3,8 @@
 """
 import os
 # disable tensorflow logging
+from tensorflow.python.keras.saving.save import load_model
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'  # noqa
 
 import configparser
@@ -38,8 +40,8 @@ tf.random.set_seed(42)
 np.random.seed(42)
 
 class LSTMConfig:
-	def __init__(self, config: SectionProxy):
-		self.name = config.name
+	def __init__(self,name: str, config: SectionProxy):
+		self.name = name
 		self.gap_detection = int(config["gap_detection_seconds"])
 		self.stride_length = int(config["train_window"])
 		self.features_in: List[str] = json.loads(config["features_in"])
@@ -113,7 +115,7 @@ class LSTMModel:
 		return y_pred[0, :, :]
 
 	def store(self, config: SectionProxy):
-		path = Path(config["storage_location"]) / f"{config.name}.pkl"
+		path = Path(config["storage_location"]) / f"{self.config.name}.pkl"
 		if not os.path.exists(path):
 			self.model.save(path)
 
@@ -130,17 +132,13 @@ class LSTMModel:
 		return pred_df
 
 
-def train_or_load_LSTM(config: configparser.ConfigParser, data: pd.DataFrame) -> LSTMModel:
+def train_or_load_LSTM(name: str, config: configparser.ConfigParser, data: pd.DataFrame) -> LSTMModel:
 	path = Path(config["storage_location"]) / f"{config.name}.pkl"
+	c = LSTMConfig(name, config)
 	if path.exists():
-		return load(config, path)
+		return LSTMModel(c, model=load_model(path))
 	else:
-		return train_lstm_model_predict(config, data), config
-
-
-def load(config: SectionProxy, path: Path) -> LSTMModel:
-	c = LSTMConfig(config)
-	return LSTMModel(c, model=load_model(path))
+		return train_lstm_model_predict(c, data)
 
 
 def split_by_location(df: DataFrame) -> Dict[str, DataFrame]:
@@ -194,10 +192,9 @@ def to_xy(df: pd.DataFrame, c: LSTMConfig) -> Tuple[np.ndarray, np.ndarray]:
 	return x, y
 
 
-def train_lstm_model_predict(config: configparser.ConfigParser, df: pd.DataFrame) -> LSTMModel:
+def train_lstm_model_predict(c: LSTMConfig, df: pd.DataFrame) -> LSTMModel:
 	"""Several things to do here: split by location, do a gap detection to split in chunks, pass each chunk through the sliding window function, …"""
 	logger.info("Preparing LSTM training data...")
-	c = LSTMConfig(config)
 
 	x_train, y_train = to_xy(df, c)
 	model = LSTMModel(c)

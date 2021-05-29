@@ -84,6 +84,10 @@ def chop_first_fringe(timeseries: pd.DataFrame) -> pd.DataFrame:
 def main_executor():
 	asyncio.run(main())
 
+def train_model(model: ModelHolder, data: pd.DataFrame):
+	model.model = model.trainer(model.name, model.config, data)
+	return model
+
 async def main():
 	print_header()
 	timer_main = Timer()
@@ -99,7 +103,6 @@ async def main():
 	smooth_timeseries = moving_average(imputed_timeseries)
 	smooth_timeseries.dropna(inplace=True)
 	df_train_val, df_test = temporal_train_test_split(smooth_timeseries, test_size=.20)
-	logger.warn(df_train_val)
 
 	models = [
 		ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
@@ -107,17 +110,16 @@ async def main():
 		ModelHolder(name="lstm_seq", trainer=train_or_load_LSTM, config=config)
 	]
 
-	trainers = [to_thread(model.trainer, config=model.config, data=df_train_val) for model in models]
-	trained_models = await gather(*trainers)
-	[model.store(model.config) for model in trained_models]  # Stores if not existing. Does NOT OVERWRITE!!!
+	trained_models = await gather(*[to_thread(train_model, model=model, data=df_train_val) for model in models])
+	[model.model.store(model.config) for model in trained_models]  # Stores if not existing. Does NOT OVERWRITE!!!
 
-	forecast_test = [model.predict(x=df_test, fh=5) for model in trained_models]
+	forecast_test = [model.model.predict(x=df_test, fh=5) for model in trained_models]
 
 	print(forecast_test)
 
-	plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.PM10', 'Zch_Stampfenbachstrasse.PM10_Pred']])
-	plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.Humidity', 'Zch_Stampfenbachstrasse.Temperature']])
-	plt.show()
+	# plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.PM10', 'Zch_Stampfenbachstrasse.PM10_Pred']])
+	# plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.Humidity', 'Zch_Stampfenbachstrasse.Temperature']])
+	# plt.show()
 
 	logger.info(f"Script completed in {timer_main}.")
 	logger.info("Terminating gracefully...")
@@ -131,7 +133,7 @@ async def main():
 		imputed_data = impute_simple_imputer(data)
 		avg_data = moving_average(imputed_data)
 		logger.debug("Forecasting")
-		forecast_list = [model.predict(x=avg_data, fh=5) for model in trained_models]
+		forecast_list = [model.model.predict(x=avg_data, fh=5) for model in trained_models]
 		forecast=sum(forecast_list)/len(forecast_list)
 		logger.info(f"Forcasting finished with forecast value {forecast}")
 		client.send_data(forecast)

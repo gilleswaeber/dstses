@@ -6,3 +6,4 @@ class ModelHolder:
 		self.name = name
 		self.trainer = trainer
 		self.config = config[name]
+		self.model = None

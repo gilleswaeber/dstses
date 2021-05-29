@@ -113,7 +113,7 @@ class ArimaModel:
 				pickle.dump(self.model, pkl)
 
 
-def train_or_load_ARIMA(config: ConfigParser, data: pd.DataFrame) -> ArimaModel:
+def train_or_load_ARIMA(name: str, config: ConfigParser, data: pd.DataFrame) -> ArimaModel:
 	p = config["storage_location"] + "/autoarima.pkl"
 	if os.path.exists(p):
 		return load(config)
