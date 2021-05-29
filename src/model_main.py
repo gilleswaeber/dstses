@@ -72,6 +72,13 @@ def load_dataset(name: str, config: ConfigParser) -> pd.DataFrame:
 
 
 def chop_first_fringe(timeseries: pd.DataFrame) -> pd.DataFrame:
+	"""
+	Chops the first fringe of the training data s.t. the data inputed to the training will not have empty cells anymore
+
+	:param timeseries: The timeseries to remove fringe
+	:return: A timeseries with the first fully valued line onwards of the input
+	"""
+
 	logger.info("Loading dataset...")
 	timer = Timer()
 
@@ -84,6 +91,12 @@ def chop_first_fringe(timeseries: pd.DataFrame) -> pd.DataFrame:
 	return timeseries
 
 def main_executor():
+	"""
+	If you do not use jupyter to call main call this function instead which first creates an executor to call the
+	parallelized main function. On my computer I can speed up learning this way as ARIMA, EXP-Smooting etc only use one
+	core for learning.
+	:return: Nothing
+	"""
 	asyncio.run(main())
 
 def train_model(model: ModelHolder, data: pd.DataFrame):
@@ -91,6 +104,10 @@ def train_model(model: ModelHolder, data: pd.DataFrame):
 	return model
 
 async def main():
+	"""
+	Main function of the application.
+	:return: Nothing.
+	"""
 	print_header()
 	timer_main = Timer()
 
@@ -99,13 +116,14 @@ async def main():
 	# read and prepare dataset for training
 	df_timeseries_complete = load_dataset("zurich_adapter", config)
 
-	print(df_timeseries_complete[:1])
-	df_timeseries = chop_first_fringe(df_timeseries_complete)
+	df_timeseries = chop_first_fringe(df_timeseries_complete) # Chop first improper filled rows
 	imputed_timeseries = impute_simple_imputer(df_timeseries)
 	smooth_timeseries = moving_average(imputed_timeseries)
-	smooth_timeseries.dropna(inplace=True)
+	smooth_timeseries.dropna(inplace=True) # Make sure there really is no empty cell anymore, else drop row
+	# Split training/testing data in 80%/20%
 	df_train_val, df_test = temporal_train_test_split(smooth_timeseries, test_size=.20)
 
+	# Define all models at our disposal
 	models = [
 		ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
 		ModelHolder(name="autoarima", trainer=train_or_load_autoARIMA, config=config),
@@ -114,9 +132,11 @@ async def main():
 		ModelHolder(name="lstm_seq", trainer=train_or_load_LSTM, config=config)
 	]
 
+	# Train the models
 	trained_models = await gather(*[to_thread(train_model, model=model, data=df_train_val) for model in models])
 	[model.model.store(model.config) for model in trained_models]  # Stores if not existing. Does NOT OVERWRITE!!!
 
+	# Test the generalization performance of our models
 	forecast_test = [model.model.predict(x=df_test, fh=5) for model in trained_models]
 
 	print(forecast_test)
@@ -131,13 +151,12 @@ async def main():
 	logger.info("start predicting new time")
 
 	with InfluxSensorData(config=config, name="influx") as client:
+		# Load the data from the server
 		data = client.get_data()
-		data = data.drop(labels=["result", "table", "_time"], axis=1)
-		logger.info(data)
-		imputed_data = impute_simple_imputer(data)
-		avg_data = moving_average(imputed_data)
+		imputed_data = impute_simple_imputer(data) # Impute
+		avg_data = moving_average(imputed_data) # Average input
 		logger.debug("Forecasting")
-		forecast_list = [model.model.predict(x=avg_data, fh=5) for model in trained_models]
+		forecast_list = [model.model.predict(x=avg_data, fh=5) for model in trained_models] # Make predictions
 		logger.debug(forecast_list)
 		forecast=sum(forecast_list)/len(forecast_list)
 		logger.info(f"Forcasting finished with forecast value {forecast}")

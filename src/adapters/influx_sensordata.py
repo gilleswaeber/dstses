@@ -65,7 +65,7 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 			"pm10": "Live.PM10",
 			"temperature": "Live.Temperature"
 		}).drop(labels=[
-			"pm1", "pm2.5", "pm4.0"
+			"pm1", "pm2.5", "pm4.0", "result", "table", "_time"
 		], axis=1)
 
 	def send_data(self, value):

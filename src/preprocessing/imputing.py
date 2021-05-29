@@ -8,6 +8,13 @@ logger = Logger("Imputer")
 
 
 def impute_simple_imputer(timeseries: pd.DataFrame, output: bool = True):
+	"""
+	Imputes the missing values with a simple mean to fill it up.
+
+	:param timeseries: Timeseries to fill.
+	:param output:
+	:return: A imputed timeseries
+	"""
 	if output:
 		logger.info_begin("Imputing missing values...")
 		timer = Timer()
