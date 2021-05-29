@@ -10,7 +10,9 @@ from sktime.forecasting.model_selection import temporal_train_test_split
 from adapters.data_adapter import IDataAdapter
 from adapters.hist_data_adapter import HistDataAdapter
 from adapters.influx_sensordata import InfluxSensorData
-from models.autoarima import train_or_load_ARIMA
+from models.arima import train_or_load_ARIMA
+from models.autoarima import train_or_load_autoARIMA
+from models.expsmoothing import train_or_load_expSmoothing
 from models.lstm import train_or_load_LSTM
 from models.modelholder import ModelHolder
 from preprocessing.imputing import impute_simple_imputer
@@ -106,6 +108,8 @@ async def main():
 
 	models = [
 		ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
+		ModelHolder(name="autoarima", trainer=train_or_load_autoARIMA, config=config),
+		ModelHolder(name="expsmooting", trainer=train_or_load_expSmoothing, config=config),
 		ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config),
 		ModelHolder(name="lstm_seq", trainer=train_or_load_LSTM, config=config)
 	]
@@ -134,6 +138,7 @@ async def main():
 		avg_data = moving_average(imputed_data)
 		logger.debug("Forecasting")
 		forecast_list = [model.model.predict(x=avg_data, fh=5) for model in trained_models]
+		logger.debug(forecast_list)
 		forecast=sum(forecast_list)/len(forecast_list)
 		logger.info(f"Forcasting finished with forecast value {forecast}")
 		client.send_data(forecast)

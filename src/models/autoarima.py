@@ -15,7 +15,7 @@ from utils.timer import Timer
 import pickle
 import os
 
-logger = Logger("Experiment")
+logger = Logger("AutoArima")
 timer_script = Timer()
 
 
@@ -76,7 +76,7 @@ def train_model_autoarima(y, x, output: bool = True) -> AutoARIMA:
 	return model
 
 
-class ArimaModel:
+class AutoArimaModel:
 	def __init__(self, conf: ConfigParser, model: AutoARIMA = None):
 		if model is not None:
 			self.model = model
@@ -86,11 +86,9 @@ class ArimaModel:
 		if output:
 			logger.info("Running script...")
 
-		imputed_timeseries = impute_simple_imputer(timeseries, output)
-		smooth_timeseries = moving_average(imputed_timeseries, output)
-		y, x = transform_data(smooth_timeseries, output)
-		y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.01)
-		self.model = train_model_autoarima(y_test, x_test, output)
+		y, x = transform_data(timeseries, output)
+		y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
+		self.model = train_model_autoarima(y_train, x_train, output)
 		y_test = pd.Series(data=np.delete(y_test, 0))
 		x_test = pd.DataFrame(data=x_test[:-1])
 		score = eval_model_mape(self.model, y_test, x_test, output)
@@ -113,18 +111,17 @@ class ArimaModel:
 				pickle.dump(self.model, pkl)
 
 
-def train_or_load_ARIMA(name: str, config: ConfigParser, data: pd.DataFrame) -> ArimaModel:
+def train_or_load_autoARIMA(name: str, config: ConfigParser, data: pd.DataFrame) -> AutoArimaModel:
 	p = config["storage_location"] + "/autoarima.pkl"
 	if os.path.exists(p):
 		return load(config)
 	else:
-		data = moving_average(data)
-		model = ArimaModel(config)
+		model = AutoArimaModel(config)
 		model.prepare_model(data)
 		return model
 
 
-def load(config: ConfigParser) -> ArimaModel:
+def load(config: ConfigParser) -> AutoArimaModel:
 	path = config["storage_location"] + "/autoarima.pkl"
 	with open(path, "rb") as pkl:
-		return ArimaModel(config, model=pickle.load(pkl))
+		return AutoArimaModel(config, model=pickle.load(pkl))
