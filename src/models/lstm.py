@@ -2,6 +2,7 @@
 	This module contains all code specifically necessary code for the LSTM model
 """
 # disable tensorflow logging
+import configparser
 import json
 import os
 from pathlib import Path
@@ -36,6 +37,13 @@ logger = Logger("LSTM")
 tf.random.set_seed(42)
 np.random.seed(42)
 
+class LSTMConfig:
+	def __init__(self, config: SectionProxy):
+		self.gap_detection = int(config["gap_detection_seconds"])
+		self.stride_length = int(config["train_window"])
+		self.features_in: List[str] = json.loads(config["features_in"])
+		self.features_out: List[str] = json.loads(config["features_out"])
+		self.use_offset: bool = config.getboolean("use_offset")
 
 class LSTMModel:
 	"""
@@ -45,7 +53,7 @@ class LSTMModel:
 		prepare function and a fit function that does not take pandas DataFrames but numpy ndarrays.
 	"""
 
-	def __init__(self, vars_in: int, vars_out: int, model: Sequential = None):
+	def __init__(self, config: configparser.ConfigParser, vars_in: int, vars_out: int, model: Sequential = None):
 		"""
 			This constructs a LSTMModel for training and usage in a sort of sklearn compatible way.
 
@@ -54,6 +62,7 @@ class LSTMModel:
 				vars_in: How many input variables there are
 		"""
 
+		self.config = config
 		if model is None:
 			# initialize model
 			self.model = Sequential()
@@ -97,19 +106,18 @@ class LSTMModel:
 			self.model.save(path)
 
 	def predict(self, x, fh):
-		return self.predict_next(x)
+		return self.predict_next(x.to_numpy())
 
 
-def train_or_load_LSTM(config: SectionProxy, data: pd.DataFrame) -> Tuple[LSTMModel, SectionProxy]:
+def train_or_load_LSTM(config: configparser.ConfigParser, data: pd.DataFrame) -> LSTMModel:
 	path = Path(config["storage_location"]) / f"{config.name}.pkl"
-	if path.exists() and False:
-		return load(config, path), config
+	if path.exists():
+		logger.debug("Load from storage")
+		c = LSTMConfig(config)
+		return LSTMModel(config, vars_in=len(c.features_in), vars_out=len(c.features_out), model=load_model(path))
 	else:
-		return train_lstm_model_predict(config, data), config
-
-
-def load(config: SectionProxy, path: Path) -> LSTMModel:
-	return LSTMModel(vars_in=0, vars_out=0, model=load_model(path))
+		logger.debug("Load from storage")
+		return train_lstm_model_predict(config, data)
 
 
 def split_by_location(df: DataFrame) -> List[DataFrame]:
@@ -134,16 +142,6 @@ def split_on_gaps(df: DataFrame, gap_gte_seconds) -> List[DataFrame]:
 		chunks.append(df[start:gap])
 		start = gap
 	return chunks
-
-
-class LSTMConfig:
-	def __init__(self, config: SectionProxy):
-		self.gap_detection = int(config["gap_detection_seconds"])
-		self.stride_length = int(config["train_window"])
-		self.features_in: List[str] = json.loads(config["features_in"])
-		self.features_out: List[str] = json.loads(config["features_out"])
-		self.use_offset: bool = config.getboolean("use_offset")
-
 
 def to_x_y(df: pd.DataFrame, c: LSTMConfig) -> Tuple[np.ndarray, np.ndarray]:
 	by_location = split_by_location(df)
@@ -173,13 +171,13 @@ def to_x_y(df: pd.DataFrame, c: LSTMConfig) -> Tuple[np.ndarray, np.ndarray]:
 	return x, y
 
 
-def train_lstm_model_predict(config: SectionProxy, df: pd.DataFrame) -> LSTMModel:
+def train_lstm_model_predict(config: configparser.ConfigParser, df: pd.DataFrame) -> LSTMModel:
 	"""Several things to do here: split by location, do a gap detection to split in chunks, pass each chunk through the sliding window function, …"""
 	logger.info("Preparing LSTM training data...")
 	c = LSTMConfig(config)
 
 	x_train, y_train = to_x_y(df, c)
-	model = LSTMModel(vars_in=len(c.features_in), vars_out=len(c.features_out))
+	model = LSTMModel(config, vars_in=len(c.features_in), vars_out=len(c.features_out))
 
 	#x_train, y_train = prepare_window_off_by_1(df.dropna(), 10)
 	#model = LSTMModel(4, 4)

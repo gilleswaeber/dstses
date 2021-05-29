@@ -1,6 +1,7 @@
-from typing import Tuple
+from typing import Tuple, List
 
 import pandas as pd
+import numpy as np
 from configparser import ConfigParser, SectionProxy
 
 from sktime.forecasting.arima import AutoARIMA
@@ -27,23 +28,35 @@ def get_labels(labels: list, filters: list) -> list:
 
 	return list(set(out))
 
+def split_by_location(df: pd.DataFrame) -> List[pd.DataFrame]:
+	"""Split into several dataframes using the the part before the dot in the column name as criterion"""
+	df_cols = list(df.columns)
+	locations = set(c.split('.')[0] for c in df_cols)
+	by_location = []
+	for l in locations:
+		loc_cols = [c for c in df_cols if c.split('.')[0] == l]
+		by_location.append(df[loc_cols].rename(columns={c: c.split('.', 1)[1] for c in loc_cols}))
+	return by_location
 
-def transform_data(timeseries: pd.DataFrame, output: bool = True) -> Tuple[pd.Series, pd.DataFrame]:
+def transform_data(timeseries: pd.DataFrame, output: bool = True) -> Tuple[np.ndarray, np.ndarray]:
 	if output:
 		logger.info("Transforming data...")
 		timer = Timer()
 	# create x and y from the dataset (exclude date and y from x)
-	y = timeseries[filter(lambda v: "PM10" in v, timeseries.columns)]
-	y_columns = len(y.columns)
-	x = timeseries.drop(labels=get_labels(timeseries.columns, ["PM10", "PM2.5", "PM1"]) + ["date"], axis=1,
-						errors='ignore')
-	x_series = pd.Series()
-	for i in range(y_columns):
-		x_series = x_series.append(x)
+	features = set(c.split('.', 1)[1] for c in timeseries.columns)
+	features_in = [c for c in features if 'PM' not in c]
+	features_out = list(features.difference(features_in))
+	x = []
+	y = []
+	for df in split_by_location(timeseries):
+		x.append(df[features_in].to_numpy())
+		y.append(df[features_out].to_numpy())
+	x = np.concatenate(x)
+	y = np.concatenate(y)
 
 	if output:
 		logger.info(f'Done in {timer}')
-	return y.squeeze(axis=1), x_series
+	return y, x
 
 
 def train_model_autoarima(y, x, output: bool = True) -> AutoARIMA:
@@ -51,6 +64,9 @@ def train_model_autoarima(y, x, output: bool = True) -> AutoARIMA:
 		logger.info("Training AutoARIMA model...")
 		timer = Timer()
 	model = AutoARIMA(suppress_warnings=True, error_action='ignore')
+
+	y = pd.Series(data=np.delete(y, 0))
+	x = pd.DataFrame(data=x[:-1])
 
 	model.fit(y, x)
 
@@ -61,11 +77,10 @@ def train_model_autoarima(y, x, output: bool = True) -> AutoARIMA:
 
 
 class ArimaModel:
-	def __init__(self, model: AutoARIMA = None):
-		if model is None:
-			self.model = AutoARIMA()
-		else:
+	def __init__(self, conf: ConfigParser, model: AutoARIMA = None):
+		if model is not None:
 			self.model = model
+		self.config = conf
 
 	def prepare_model(self, timeseries: pd.DataFrame, output: bool = True) -> AutoARIMA:
 		if output:
@@ -74,16 +89,22 @@ class ArimaModel:
 		imputed_timeseries = impute_simple_imputer(timeseries, output)
 		smooth_timeseries = moving_average(imputed_timeseries, output)
 		y, x = transform_data(smooth_timeseries, output)
-		y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
-		model = train_model_autoarima(y_train, x_train, output)
-		score = eval_model_mape(model, y_test, x_test, output)
+		y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.01)
+		self.model = train_model_autoarima(y_test, x_test, output)
+		y_test = pd.Series(data=np.delete(y_test, 0))
+		x_test = pd.DataFrame(data=x_test[:-1])
+		score = eval_model_mape(self.model, y_test, x_test, output)
 		if output:
 			logger.info(f"Score of model: {score:.04f}")
 			logger.info(f"Completed script in {timer_script}")
-		return model
+		return self.model
 
 	def predict(self, x, fh: int):
-		return self.model.predict(X=x, fh=fh)
+		_, data = transform_data(x, True)
+		fh = len(data)
+		prediction = self.model.predict(X=data, fh=np.linspace(1, fh, fh))
+		prediction.index = range(len(prediction))
+		return prediction
 
 	def store(self, config: SectionProxy):
 		path = config["storage_location"] + "/autoarima.pkl"
@@ -92,13 +113,13 @@ class ArimaModel:
 				pickle.dump(self.model, pkl)
 
 
-def train_or_load_ARIMA(config: ConfigParser, data: pd.DataFrame, name: str) -> ArimaModel:
+def train_or_load_ARIMA(config: ConfigParser, data: pd.DataFrame) -> ArimaModel:
 	p = config["storage_location"] + "/autoarima.pkl"
 	if os.path.exists(p):
 		return load(config)
 	else:
 		data = moving_average(data)
-		model = ArimaModel()
+		model = ArimaModel(config)
 		model.prepare_model(data)
 		return model
 
@@ -106,4 +127,4 @@ def train_or_load_ARIMA(config: ConfigParser, data: pd.DataFrame, name: str) -> 
 def load(config: ConfigParser) -> ArimaModel:
 	path = config["storage_location"] + "/autoarima.pkl"
 	with open(path, "rb") as pkl:
-		return ArimaModel(model=pickle.load(pkl))
+		return ArimaModel(config, model=pickle.load(pkl))

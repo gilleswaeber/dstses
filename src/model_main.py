@@ -59,14 +59,14 @@ def load_dataset(name: str, config: ConfigParser) -> pd.DataFrame:
 			
 			A pandas DataFrame containing all data that could be read from the database
 	"""
-	logger.info_begin("Loading dataset...")
+	logger.info("Loading dataset...")
 	timer = Timer()
 
 	adapter: IDataAdapter = HistDataAdapter(config, name)
 	# read the dataframe from the database
 	df: pd.DataFrame = adapter.get_data()
 
-	logger.info_end(f"Done in {timer}")
+	logger.info(f"Done in {timer}")
 	return df
 
 
@@ -96,23 +96,26 @@ async def main():
 
 	print(df_timeseries_complete[:1])
 	df_timeseries = chop_first_fringe(df_timeseries_complete)
-	df_train_val, df_test = temporal_train_test_split(df_timeseries, test_size=.20)
+	imputed_timeseries = impute_simple_imputer(df_timeseries)
+	smooth_timeseries = moving_average(imputed_timeseries)
+	df_train_val, df_test = temporal_train_test_split(smooth_timeseries, test_size=.20)
+	logger.warn(df_train_val)
 
 	models = [
-		# ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
+		ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
 		ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config)
 	]
 
- 	# trainers = [to_thread(model.trainer, config=model.config, data=df_train_val) for model in models]
-	# models = await gather(*trainers)
-	# [model.store(conf) for model, conf in models]  # Stores if not existing. Does NOT OVERWRITE!!!
+	trainers = [to_thread(model.trainer, config=model.config, data=df_train_val) for model in models]
+	trained_models = await gather(*trainers)
+	[model.store(model.config) for model in trained_models]  # Stores if not existing. Does NOT OVERWRITE!!!
 
-	# forecast_test = [model.predict(x=df_test, fh=5) for model, config in models]
+	forecast_test = [model.predict(x=df_test, fh=5) for model in trained_models]
 
-	# print(forecast_test)
+	print(forecast_test)
 
-	# plt.plot(forecast_test)
-	# plt.show()
+	plt.plot(forecast_test)
+	plt.show()
 
 	logger.info(f"Script completed in {timer_main}.")
 	logger.info("Terminating gracefully...")
@@ -121,11 +124,14 @@ async def main():
 
 	with InfluxSensorData(config=config, name="influx") as client:
 		data = client.get_data()
-		logger.warn(len(data))
+		data = data.drop(labels=["result", "table", "_time"], axis=1)
+		logger.info(data)
 		imputed_data = impute_simple_imputer(data)
 		avg_data = moving_average(imputed_data)
-		forecast_list = [model.predict(x=avg_data, fh=5) for model in models]
+		logger.debug("Forecasting")
+		forecast_list = [model.predict(x=avg_data, fh=5) for model in trained_models]
 		forecast=sum(forecast_list)/len(forecast_list)
+		logger.info(f"Forcasting finished with forecast value {forecast}")
 		client.send_data(forecast)
 
 

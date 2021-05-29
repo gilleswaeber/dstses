@@ -285,7 +285,7 @@ RUN mamba install --quiet --yes \
     'pandas' \
     'ciso8601' \
     'pip' \
-    'sktime' \
+    'sktime==0.6.0' \
     'pmdarima' \
     && pip install influxdb-client
 
