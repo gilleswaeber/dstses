@@ -1,4 +1,5 @@
 import asyncio
+import json
 from asyncio import gather
 from configparser import ConfigParser
 
@@ -157,10 +158,20 @@ async def main():
 		avg_data = moving_average(imputed_data) # Average input
 		logger.debug("Forecasting")
 		forecast_list = [model.model.predict(x=avg_data, fh=5) for model in trained_models] # Make predictions
-		logger.debug(forecast_list)
-		forecast=sum(forecast_list)/len(forecast_list)
-		logger.info(f"Forcasting finished with forecast value {forecast}")
-		client.send_data(forecast)
+
+		logger.info(forecast_list)
+		forecast_dict = {
+			"arima": forecast_list[0],
+			"autoarima": forecast_list[1],
+			"expsmoothing": forecast_list[2],
+			"lstm": forecast_list[3].iloc[:, forecast_list[3].columns.get_loc("Live.PM10_Pred")],
+			"lstm_seq": forecast_list[4].iloc[:, forecast_list[4].columns.get_loc("Live.PM10_Pred")]
+		}
+
+		forecast = pd.DataFrame(data=forecast_dict)
+		logger.debug(forecast)
+		forecast=forecast.mean(axis=1).head(n=5)
+		logger.info(f"Forcasting finished with forecast value\n {forecast}")
 
 
 # if this is the main file, then run the main function directly
