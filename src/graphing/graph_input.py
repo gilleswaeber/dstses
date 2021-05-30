@@ -114,71 +114,19 @@ async def main():
 
 	config = default_config()
 
-	# read and prepare dataset for training
-	df_timeseries_complete = load_dataset("zurich_adapter", config)
-
-	df_timeseries = chop_first_fringe(df_timeseries_complete) # Chop first improper filled rows
-	imputed_timeseries = impute_simple_imputer(df_timeseries)
-	smooth_timeseries = moving_average(imputed_timeseries)
-	smooth_timeseries.dropna(inplace=True) # Make sure there really is no empty cell anymore, else drop row
-	# Split training/testing data in 80%/20%
-	df_train_val, df_test = temporal_train_test_split(smooth_timeseries, test_size=.20)
-
-	# Define all models at our disposal
-	models = [
-		ModelHolder(name="arima", trainer=train_or_load_ARIMA, config=config),
-		ModelHolder(name="autoarima", trainer=train_or_load_autoARIMA, config=config),
-		ModelHolder(name="expsmooting", trainer=train_or_load_expSmoothing, config=config),
-		ModelHolder(name="lstm", trainer=train_or_load_LSTM, config=config),
-		ModelHolder(name="lstm_seq", trainer=train_or_load_LSTM, config=config)
-	]
-
-	# Train the models
-	trained_models = await gather(*[to_thread(train_model, model=model, data=df_train_val) for model in models])
-	[model.model.store(model.config) for model in trained_models]  # Stores if not existing. Does NOT OVERWRITE!!!
-
-	# Test the generalization performance of our models
-	forecast_test = [model.model.predict(x=df_test, fh=5) for model in trained_models]
-
-	print(forecast_test)
-
-	# plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.PM10', 'Zch_Stampfenbachstrasse.PM10_Pred']])
-	# plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.Humidity', 'Zch_Stampfenbachstrasse.Temperature']])
-	# plt.show()
-
-	logger.info(f"Script completed in {timer_main}.")
-	logger.info("Terminating gracefully...")
-
 	logger.info("start predicting new time")
 
+	config["influx"]["drops"] = '["pm1", "pm4.0", "result", "table", "_time", "humidity", "temperature"]'
 	with InfluxSensorData(config=config, name="influx") as client:
 		# Load the data from the server
-		data = client.get_data().rename(columns={
-			"humidity": "Live.Humidity",
-			"pm10": "Live.PM10",
-			"temperature": "Live.Temperature"
-		})
+		data = client.get_data()
 		imputed_data = impute_simple_imputer(data) # Impute
 		avg_data = moving_average(imputed_data) # Average input
-		logger.debug("Forecasting")
-		forecast_list = [model.model.predict(x=avg_data, fh=5) for model in trained_models] # Make predictions
-
-		logger.info(forecast_list)
-		forecast_dict = {
-			"arima": forecast_list[0],
-			"autoarima": forecast_list[1],
-			"expsmoothing": forecast_list[2],
-			"lstm": forecast_list[3].iloc[:, forecast_list[3].columns.get_loc("Live.PM10_Pred")],
-			"lstm_seq": forecast_list[4].iloc[:, forecast_list[4].columns.get_loc("Live.PM10_Pred")]
-		}
-
-		forecast = pd.DataFrame(data=forecast_dict)
-		logger.debug(forecast)
-		forecast=forecast.mean(axis=1).head(n=50)
-		logger.info(f"Forcasting finished with forecast value\n {forecast}")
 
 		sns.set_theme(style="darkgrid")
-		sns.lineplot(data=forecast)
+		g = sns.jointplot(x="pm2.5", y="pm10", data=avg_data, kind="reg", truncate=False, xlim=(0, 40), ylim=(0, 40),
+																										   color="m", height=7)
+
 
 
 # if this is the main file, then run the main function directly

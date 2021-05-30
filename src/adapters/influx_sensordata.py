@@ -1,3 +1,4 @@
+import json
 from configparser import ConfigParser
 from datetime import datetime
 
@@ -31,6 +32,7 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 		self.bucket = config[name]["bucket"]
 		self.start = config[name].get("start", "-30d")
 		self.limit = config[name].get("limit", "100")
+		self.drops = json.loads(config[name].get("drops", '["pm1", "pm2.5", "pm4.0", "result", "table", "_time"]'))
 		self.client = InfluxDBClient.from_config_file(self.config["influx"]["config"], debug=True)
 
 	def get_data(self):
@@ -60,13 +62,7 @@ class InfluxSensorData(data_adapter.IDataAdapter):
 									  f'|> limit(n: {self.limit})// debug remove me after \n'
 									  '|> sort(columns: ["_time"]) // Before exit always sort as we want to have a timeline \n'
 									  '|> yield()\n'
-									  ).rename(columns={
-			"humidity": "Live.Humidity",
-			"pm10": "Live.PM10",
-			"temperature": "Live.Temperature"
-		}).drop(labels=[
-			"pm1", "pm2.5", "pm4.0", "result", "table", "_time"
-		], axis=1)
+									  ).drop(labels=self.drops, axis=1)
 
 	def send_data(self, value):
 		point = Point("prediction").field("prediction", value).time(datetime.now())
