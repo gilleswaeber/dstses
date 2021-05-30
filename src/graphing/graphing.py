@@ -123,4 +123,7 @@ if __name__ == "__main__":
 		'our_hist': Command('our_hist', 'Graphs comparison of our data to historical data', graph_comparison_our_vs_hist),
 		'typical': Command('typical', 'Graphs the typical day', graph_typical_day)
 	}
-	main(cmds)
+	try:
+		main(cmds)
+	finally:
+		Logger.__progress = None
