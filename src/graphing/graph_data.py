@@ -25,12 +25,14 @@ def graph_random_noise():
 		Graphs 100 steps of a randomly generated timeseries
 	"""
 	data = np.random.random(100)
+	data1 = np.array(([np.nan] * 50) + np.random.random(50).tolist())
+	
+	data = np.array([data, data1]).transpose()
 	
 	sns.set_theme(style="darkgrid")
 	plot = sns.relplot(kind="line", data=data)
 	plot.set_axis_labels("Index", "Value")
 	plot.ax.set_title("White Noise")
-	plot.add_legend(frameon=True)
 	plot.tight_layout()
 	plot.savefig("random_noise.png")
 
@@ -50,7 +52,7 @@ def graph_comparison_our_vs_hist():
 	hist_data = adapter_hist.get_data(output=False)
 	our_data = adapter_influx.get_data_8610()
 	
-	our_data.columns = ["Date", "Humidity (Our)", "PM10 (Our)", "Temperature (Our)"]
+	our_data.columns = ["Date", "Humidity [%] (Our)", "PM10 [µg/m³] (Our)", "Temperature [°C] (Our)"]
 	our_data.set_index("Date", inplace=True)
 	
 	# select some days
@@ -63,7 +65,7 @@ def graph_comparison_our_vs_hist():
 	hist_data = hist_data[hist_data.index.to_series() >= _from]
 	
 	hist_data.drop(labels=["Zch_Stampfenbachstrasse.Pressure", "Zch_Stampfenbachstrasse.PM2.5"], axis=1, inplace=True)
-	hist_data.columns = ["PM10 (Official)", "Humidity (Official)", "Temperature (Official)"]
+	hist_data.columns = ["PM10 [µg/m³] (Official)", "Humidity [%] (Official)", "Temperature [°C] (Official)"]
 	our_data.index = our_data.index.tz_localize(None)
 	
 	data = our_data.join(hist_data, how="outer")
@@ -156,7 +158,7 @@ def graph_typical_day():
 	x_humidity = []
 	y_humidity = []
 	x_temperature = []
-	y_temperature=  []
+	y_temperature = []
 	
 	for x in range(24):
 		for y in data_pm10[x]:
@@ -171,18 +173,18 @@ def graph_typical_day():
 	
 	sns.set_theme(style="darkgrid")
 	plot = sns.relplot(x=x_pm10, y=y_pm10, kind="line", ci="sd")
-	plot.ax.set_title("Typical Day of PM10")
+	plot.set(xlabel="Time of Day", ylabel="PM10 [µg/m³]", title="Typical Day of PM10")
 	plot.tight_layout()
 	plot.savefig("typical_pm10.png")
 
 	sns.set_theme(style="darkgrid")
 	plot = sns.relplot(x=x_humidity, y=y_humidity, kind="line", ci="sd")
-	plot.ax.set_title("Typical Day of Humidity")
+	plot.set(xlabel="Time of Day", ylabel="Humidity [%]", title="Typical Day of Humidity")
 	plot.tight_layout()
 	plot.savefig("typical_humidity.png")
 
 	sns.set_theme(style="darkgrid")
 	plot = sns.relplot(x=x_temperature, y=y_temperature, kind="line", ci="sd")
-	plot.ax.set_title("Typical Day of Temperature")
+	plot.set(xlabel="Time of Day", ylabel="Temperature [°C]", title="Typical Day of Temperature")
 	plot.tight_layout()
 	plot.savefig("typical_temperature.png")
