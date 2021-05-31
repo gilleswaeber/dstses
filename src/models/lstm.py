@@ -69,9 +69,9 @@ class LSTMModel:
 		if model is None:
 			# initialize model
 			self.model = Sequential()
-			self.model.add(LSTM(units=128, activation='sigmoid', input_shape=(None, len(self.config.features_in)),
+			self.model.add(LSTM(units=128, input_shape=(None, len(self.config.features_in)),
 								return_sequences=True))
-			self.model.add(TimeDistributed(Dropout(rate=.1)))
+			self.model.add(TimeDistributed(Dense(32)))
 			self.model.add(TimeDistributed(Dense(len(self.config.features_out), activation='sigmoid')))
 			# self.model.compile(loss='mean_squared_error')
 			self.model.compile(optimizer=Adam(clipnorm=1), loss='mean_squared_error')
@@ -85,7 +85,7 @@ class LSTMModel:
 		print(f"Model: {self.model.input_shape}")
 		with tqdm(total=epochs, desc='LSTM training', dynamic_ncols=True) as progress:
 			nntc = KerasTrainCallback(self.config.name, progress)
-			self.model.fit(x=x, y=y, batch_size=32, validation_split=1 / 8, use_multiprocessing=True, callbacks=[nntc],
+			self.model.fit(x=x, y=y, batch_size=4, validation_split=1 / 8, use_multiprocessing=True, callbacks=[nntc],
 						   epochs=epochs)
 		return self.model
 
@@ -201,7 +201,7 @@ def train_lstm_model_predict(c: LSTMConfig, df: pd.DataFrame) -> LSTMModel:
 
 	timer = Timer()
 	logger.info("Training LSTM...")
-	model.fit(x=x_train, y=y_train, epochs=10)
+	model.fit(x=x_train, y=y_train, epochs=50)
 	logger.info(f"Done in {timer}")
 	return model
 

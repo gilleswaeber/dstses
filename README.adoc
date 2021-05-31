@@ -22,6 +22,7 @@ The future idea of usage is to integrate the measured data with additional datas
 | papers | Various Papers related to prediction models
 | sensor | The sensor software project used to acquire sensor data
 | src | The source code of the overall prediction software
+| models | The trained models
 | workbooks | Various workbooks with experiments
 |===
 
@@ -52,7 +53,3 @@ If you do not see that kernel, check whether your in the venv (stes).
 == Documentation
 
 You can find the documentation in the /docs directory.
-
-== Publish
-
-We could publish our Stuff as an interactive Website on https://mybinder.org/.

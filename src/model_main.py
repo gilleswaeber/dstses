@@ -5,6 +5,7 @@ from configparser import ConfigParser
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 from sktime.forecasting.model_selection import temporal_train_test_split
 import seaborn as sns
 
@@ -18,7 +19,7 @@ from models.lstm import train_or_load_LSTM
 from models.modelholder import ModelHolder
 from preprocessing.imputing import impute_simple_imputer
 from preprocessing.moving_average import moving_average
-from utils.config import default_config
+from utils.config import default_config, PROJECT_DIR
 from utils.logger import Logger
 from utils.threading import to_thread
 from utils.timer import Timer
@@ -115,12 +116,20 @@ async def main():
 	config = default_config()
 
 	# read and prepare dataset for training
-	df_timeseries_complete = load_dataset("zurich_adapter", config)
+	# df_timeseries_complete = load_dataset("zurich_adapter", config)
+	with InfluxSensorData(config=config, name="influx") as client:
+		# Load the data from the server
+		df_timeseries_complete = client.get_data().rename(columns={
+			"humidity": "Live.Humidity",
+			"pm10": "Live.PM10",
+			"temperature": "Live.Temperature",
+			"_time": "date"
+		})
 
-	df_timeseries = chop_first_fringe(df_timeseries_complete) # Chop first improper filled rows
+	df_timeseries = chop_first_fringe(df_timeseries_complete)  # Chop first improper filled rows
 	imputed_timeseries = impute_simple_imputer(df_timeseries)
 	smooth_timeseries = moving_average(imputed_timeseries)
-	smooth_timeseries.dropna(inplace=True) # Make sure there really is no empty cell anymore, else drop row
+	smooth_timeseries.dropna(inplace=True)  # Make sure there really is no empty cell anymore, else drop row
 	# Split training/testing data in 80%/20%
 	df_train_val, df_test = temporal_train_test_split(smooth_timeseries, test_size=.20)
 
@@ -140,14 +149,18 @@ async def main():
 	# Test the generalization performance of our models
 	forecast_test = [model.model.predict(x=df_test, fh=5) for model in trained_models]
 
-	print(forecast_test)
+	all: DataFrame = df_test.copy()
+	all["Arima.PM10"] = forecast_test[0].values
+	all["AutoArima.PM10"] = forecast_test[1].values
+	all["ExpSmoothing.PM10"] = forecast_test[2].values
+	all["LSTM.PM10"] = (forecast_test[3]['Live.PM10_Pred'])
+	all["LSTMSeq.PM10"] = (forecast_test[4]['Live.PM10_Pred'])
+	# all.to_csv(PROJECT_DIR / 'pm10_predictions.csv')
 
-	# plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.PM10', 'Zch_Stampfenbachstrasse.PM10_Pred']])
-	# plt.plot(forecast_test[0][['Zch_Stampfenbachstrasse.Humidity', 'Zch_Stampfenbachstrasse.Temperature']])
-	# plt.show()
-
+	print(all)
 	logger.info(f"Script completed in {timer_main}.")
 	logger.info("Terminating gracefully...")
+	exit(0)
 
 	logger.info("start predicting new time")
 
