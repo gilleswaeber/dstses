@@ -34,9 +34,10 @@ def write_model_graph(y_train, y_test, y_pred, name):
 	palette = sns.color_palette(["#0000ff", "#00bb00", "#ff0000"])
 	sns.set_theme(style="darkgrid")
 	plot = sns.relplot(data=pd.DataFrame(data), kind="line", dashes=["", "", ""], palette=palette, legend=False, aspect=1.5)
-	plot.ax.set_title(f"{name} {fh}h forecast")
+	plot.set(xlabel="Time", ylabel="PM10 [µg/m³]", title=f"{name} {fh}h forecast")
 	plot.ax.xaxis.set_major_locator(plt.NullLocator())
 	plot.ax.xaxis.set_major_formatter(plt.NullFormatter())
+	plt.legend(loc="lower center", labels=["Training Phase", "Ground Truth", "Prediction"])
 	plot.tight_layout()
 	plot.savefig(f"{name.lower().replace(' ', '_')}.png")
 
