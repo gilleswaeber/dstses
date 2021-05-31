@@ -117,11 +117,13 @@ async def main():
 	logger.info("start predicting new time")
 
 	config["influx"]["drops"] = '["pm1", "pm4.0", "result", "table", "_time"]'
+	config["influx"]["limit"] = "10000"
 	with InfluxSensorData(config=config, name="influx") as client:
 		# Load the data from the server
 		data = client.get_data()
 		imputed_data = impute_simple_imputer(data) # Impute
 		avg_data = moving_average(imputed_data) # Average input
+		logger.info(f"data len {len(avg_data)}")
 
 		sns.set_theme(style="darkgrid")
 		g = sns.jointplot(x="pm2.5", y="pm10", data=avg_data, kind="reg", truncate=False, xlim=(0, 40), ylim=(0, 40),
