@@ -11,3 +11,5 @@ keras
 matplotlib
 sktime
 seaborn
+xlrd
+openpyxl

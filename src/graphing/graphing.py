@@ -39,6 +39,8 @@ from graph_data import graph_typical_day
 from graph_models import graph_model_autoarima
 from graph_models import graph_model_arima
 from graph_models import graph_model_exp_smoothing
+from graph_models import graph_model_lstm
+from graph_models import graph_model_lstmseq
 from graph_preprocessing import graph_moving_average
 from graph_preprocessing import graph_simple_imputer
 from utils.logger import Logger
@@ -122,6 +124,8 @@ if __name__ == "__main__":
 		'autoarima': Command('autoarima', 'Graphs the predictions of AutoARIMA', graph_model_autoarima),
 		'arima': Command('arima', 'Graphs the predictions of ARIMA', graph_model_arima),
 		'exp_smoothing': Command('exp_smoothing', 'Graphs the predictions of exp_smoothing', graph_model_exp_smoothing),
+		'lstm': Command('lstm', 'Graphs the predictions of LSTM', graph_model_lstm),
+		'lstmseq': Command('lstmseq', 'Graphs the predictions of LSTM', graph_model_lstmseq),
 		'our_hist': Command('our_hist', 'Graphs comparison of our data to historical data', graph_comparison_our_vs_hist),
 		'typical': Command('typical', 'Graphs the typical day', graph_typical_day)
 	}

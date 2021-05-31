@@ -133,7 +133,7 @@ class LSTMModel:
 
 
 def train_or_load_LSTM(name: str, config: configparser.ConfigParser, data: pd.DataFrame) -> LSTMModel:
-	path = Path(config["storage_location"]) / f"{config.name}.pkl"
+	path = Path(config["DEFAULT"]["storage_location"]) / f"{config.name}.pkl"
 	c = LSTMConfig(name, config)
 	if path.exists():
 		return LSTMModel(c, model=load_model(path))
