@@ -61,9 +61,9 @@ def transform_data(timeseries: pd.DataFrame, output: bool = True) -> Tuple[np.nd
 
 def train_model_expSmooting(y, x, output: bool = True) -> ExponentialSmoothing:
 	if output:
-		logger.info("Training AutoARIMA model...")
+		logger.info("Training Exponential Smoothing model...")
 		timer = Timer()
-	model = ExponentialSmoothing()
+	model = ExponentialSmoothing(sp=24, seasonal='mul')
 
 	y = pd.Series(data=np.delete(y, 0))
 	x = pd.DataFrame(data=x[:-1])

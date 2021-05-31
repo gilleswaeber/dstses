@@ -25,12 +25,14 @@ def graph_random_noise():
 		Graphs 100 steps of a randomly generated timeseries
 	"""
 	data = np.random.random(100)
+	data1 = np.array(([np.nan] * 50) + np.random.random(50).tolist())
+	
+	data = np.array([data, data1]).transpose()
 	
 	sns.set_theme(style="darkgrid")
 	plot = sns.relplot(kind="line", data=data)
 	plot.set_axis_labels("Index", "Value")
 	plot.ax.set_title("White Noise")
-	plot.add_legend(frameon=True)
 	plot.tight_layout()
 	plot.savefig("random_noise.png")
 

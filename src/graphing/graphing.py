@@ -87,21 +87,23 @@ def main(commands: Dict[str, Command]):
 	to_be_called = []
 
 	for arg in sys.argv[1:]:
-		if arg == 'all' or arg == 'help':
-			to_be_called = list(filter(lambda x: x.name != 'all', commands.values()))
+		if arg == 'all':
+			to_be_called = list(filter(lambda x: x.name not in ['all', 'help'], commands.values()))
 			break
-		elif arg in commands:
-			to_be_called.append(commands[arg])
-		else:
+		elif arg == 'help':
 			logger.info("usage: graphing <command>...")
 			logger.info("")
 			logger.info("Commands:")
 			for cmd in commands.values():
 				logger.info(f"\t{cmd}")
 			sys.exit()
+		elif arg in commands:
+			to_be_called.append(commands[arg])
+		else:
+			logger.error(f"Unknown command: '{arg}'")
 
 	if len(to_be_called) < 1:
-		to_be_called = list(filter(lambda x: x.name != 'all', commands.values()))
+		to_be_called = list(filter(lambda x: x.name not in ['all', 'help'], commands.values()))
 
 	for cmd in to_be_called:
 		timer = Timer()
