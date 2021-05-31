@@ -7,7 +7,7 @@ venv/
 dockerenv/
 
 # Hide influx db config
-influx2.ini
+src/resources/influx2.ini
 
 # IntelliJ Project
 *.iml
@@ -15,3 +15,6 @@ influx2.ini
 
 # don't upload all images, since they can be generated
 saved_graphs/
+
+# Jupyter stuff
+.ipynb_checkpoints

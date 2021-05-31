@@ -1,5 +1,9 @@
-import numpy as np
+from typing import Tuple, List
+
 import pandas as pd
+import numpy as np
+from configparser import ConfigParser, SectionProxy
+
 from sktime.forecasting.exp_smoothing import ExponentialSmoothing
 from sktime.forecasting.model_selection import temporal_train_test_split
 
@@ -8,8 +12,10 @@ from preprocessing.imputing import impute_simple_imputer
 from preprocessing.moving_average import moving_average
 from utils.logger import Logger
 from utils.timer import Timer
+import pickle
+import os
 
-logger = Logger("Exp Smoothing")
+logger = Logger("ExpSmooting")
 timer_script = Timer()
 
 
@@ -22,62 +28,99 @@ def get_labels(labels: list, filters: list) -> list:
 
 	return list(set(out))
 
+def split_by_location(df: pd.DataFrame) -> List[pd.DataFrame]:
+	"""Split into several dataframes using the the part before the dot in the column name as criterion"""
+	df_cols = list(df.columns)
+	locations = set(c.split('.')[0] for c in df_cols)
+	by_location = []
+	for l in locations:
+		loc_cols = [c for c in df_cols if c.split('.')[0] == l]
+		by_location.append(df[loc_cols].rename(columns={c: c.split('.', 1)[1] for c in loc_cols}))
+	return by_location
 
-def load_dataset(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, pd.DataFrame):
+def transform_data(timeseries: pd.DataFrame, output: bool = True) -> Tuple[np.ndarray, np.ndarray]:
 	if output:
-		logger.info_begin("Loading dataset...")
-		timer = Timer()
-
-	# select only intervals where all values are available
-	fvi = np.max([timeseries[col].first_valid_index() for col in timeseries.columns])
-	drop_indices = np.arange(0, fvi + 1)
-	timeseries = timeseries.drop(drop_indices)
-	# drop the date column because it is not a numeric value
-	timeseries = timeseries.drop(labels=["date"], axis=1)
-	if output:
-		logger.info_end(f'Done in {timer}')
-
-	return timeseries
-
-
-def transform_data(timeseries: pd.DataFrame, output: bool = True) -> (pd.Series, pd.DataFrame):
-	if output:
-		logger.info_begin("Transforming data...")
+		logger.info("Transforming data...")
 		timer = Timer()
 	# create x and y from the dataset (exclude date and y from x)
-	y = timeseries[filter(lambda v: "PM10" in v, timeseries.columns)].squeeze()
-	x = timeseries.drop(labels=get_labels(timeseries.columns, ["PM10", "PM2.5", "PM1"]) + ["date"], axis=1,
-						errors='ignore')
+	features = set(c.split('.', 1)[1] for c in timeseries.columns)
+	features_in = [c for c in features if 'PM' not in c]
+	features_out = list(features.difference(features_in))
+	x = []
+	y = []
+	for df in split_by_location(timeseries):
+		x.append(df[features_in].to_numpy())
+		y.append(df[features_out].to_numpy())
+	x = np.concatenate(x)
+	y = np.concatenate(y)
 
 	if output:
-		logger.info_end(f'Done in {timer}')
+		logger.info(f'Done in {timer}')
 	return y, x
 
 
-def train_model_expsmooth(y, x, output: bool = True) -> ExponentialSmoothing:
+def train_model_expSmooting(y, x, output: bool = True) -> ExponentialSmoothing:
 	if output:
-		logger.info_begin("Training AutoARIMA model...")
+		logger.info("Training AutoARIMA model...")
 		timer = Timer()
-	model = ExponentialSmoothing(sp=24, seasonal='mul')  # sp for 24h per day
+	model = ExponentialSmoothing()
+
+	y = pd.Series(data=np.delete(y, 0))
+	x = pd.DataFrame(data=x[:-1])
 
 	model.fit(y, x)
 
 	if output:
-		logger.info_end(f'Done in {timer}')
+		logger.info(f'Done in {timer}')
 	return model
 
 
-def prepare_model(timeseries: pd.DataFrame, output: bool = True):
-	if output:
-		logger.info("Running script...")
+class ExpSmootingModel:
+	def __init__(self, conf: ConfigParser, model: ExponentialSmoothing = None):
+		if model is not None:
+			self.model = model
+		self.config = conf
 
-	timeseries = load_dataset(timeseries, output)
-	imputed_timeseries = impute_simple_imputer(timeseries, output)
-	smooth_timeseries = moving_average(imputed_timeseries, output)
-	y, x = transform_data(smooth_timeseries, output)
-	y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
-	model = train_model_expsmooth(y_train, x_train, output)
-	score = eval_model_mape(model, y_test, x_test, output)
-	if output:
-		logger.info(f"Score of model: {score:.04f}")
-		logger.info(f"Completed script in {timer_script}")
+	def prepare_model(self, timeseries: pd.DataFrame, output: bool = True) -> ExponentialSmoothing:
+		if output:
+			logger.info("Running script...")
+
+		y, x = transform_data(timeseries, output)
+		y_train, y_test, x_train, x_test = temporal_train_test_split(y, x, test_size=0.1)
+		self.model = train_model_expSmooting(y_train, x_train, output)
+		y_test = pd.Series(data=np.delete(y_test, 0))
+		x_test = pd.DataFrame(data=x_test[:-1])
+		score = eval_model_mape(self.model, y_test, x_test, output)
+		if output:
+			logger.info(f"Score of model: {score:.04f}")
+			logger.info(f"Completed script in {timer_script}")
+		return self.model
+
+	def predict(self, x, fh: int):
+		_, data = transform_data(x, True)
+		fh = len(data)
+		prediction = self.model.predict(X=data, fh=np.linspace(1, fh, fh))
+		prediction.index = range(len(prediction))
+		return prediction
+
+	def store(self, config: SectionProxy):
+		path = config["storage_location"] + "/expsmoothing.pkl"
+		if not os.path.exists(path):
+			with open(path, 'wb') as pkl:
+				pickle.dump(self.model, pkl)
+
+
+def train_or_load_expSmoothing(name: str, config: ConfigParser, data: pd.DataFrame) -> ExpSmootingModel:
+	p = config["storage_location"] + "/expsmoothing.pkl"
+	if os.path.exists(p):
+		return load(config)
+	else:
+		model = ExpSmootingModel(config)
+		model.prepare_model(data)
+		return model
+
+
+def load(config: ConfigParser) -> ExpSmootingModel:
+	path = config["storage_location"] + "/expsmoothing.pkl"
+	with open(path, "rb") as pkl:
+		return ExpSmootingModel(config, model=pickle.load(pkl))

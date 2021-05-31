@@ -19,6 +19,8 @@ def eval_model_mape(model, y_test, x_test, output: bool = True) -> float:
 	y_pred = model.predict(X=x_test, fh=fh)
 	if output:
 		logger.info_update("Scoring")
+	y_pred.index = range(len(y_pred))
+	logger.info(y_pred)
 	error = mape_loss(y_test, y_pred)
 	if output:
 		logger.info_end(f'Done in {timer}')

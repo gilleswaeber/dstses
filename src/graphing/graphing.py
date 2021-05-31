@@ -34,6 +34,8 @@ import sys
 from typing import Callable, Dict
 
 from graph_data import graph_random_noise
+from graph_data import graph_comparison_our_vs_hist
+from graph_data import graph_typical_day
 from graph_models import graph_model_autoarima
 from graph_models import graph_model_arima
 from graph_models import graph_model_exp_smoothing
@@ -117,6 +119,11 @@ if __name__ == "__main__":
 		'simple_imputer': Command('simple_imputer', 'Graphs the effects of a simple imputer', graph_simple_imputer),
 		'autoarima': Command('autoarima', 'Graphs the predictions of AutoARIMA', graph_model_autoarima),
 		'arima': Command('arima', 'Graphs the predictions of ARIMA', graph_model_arima),
-		'exp_smoothing': Command('exp_smoothing', 'Graphs the predictions of exp_smoothing', graph_model_exp_smoothing)
+		'exp_smoothing': Command('exp_smoothing', 'Graphs the predictions of exp_smoothing', graph_model_exp_smoothing),
+		'our_hist': Command('our_hist', 'Graphs comparison of our data to historical data', graph_comparison_our_vs_hist),
+		'typical': Command('typical', 'Graphs the typical day', graph_typical_day)
 	}
-	main(cmds)
+	try:
+		main(cmds)
+	finally:
+		Logger.__progress = None

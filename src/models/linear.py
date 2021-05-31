@@ -4,7 +4,7 @@
 # disable tensorflow logging
 import math
 import os
-from typing import List
+from typing import List, Tuple
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'
 
@@ -84,7 +84,7 @@ def train_linear_model(y: pd.DataFrame, x: pd.DataFrame, fh: int) -> LinearModel
 
 def prepare_dataset_linear(dataframes: List[pd.DataFrame], in_names: List[str], out_names: List[str], unit_size: int,
 						   fh: int) \
-	-> (np.ndarray, np.ndarray, List[str], List[str]):
+	-> Tuple[np.ndarray, np.ndarray, List[str], List[str]]:
 	"""
 		This function reorganises a set of DataFrames into the 3-d numpy array that tensorflow wants for
 		the Linear network.

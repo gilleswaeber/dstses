@@ -46,17 +46,15 @@ pd.DataFrame, pd.DataFrame, pd.DataFrame):
 	location = config[name]["location"]
 	measurements_input = json.loads(config[name]["measurements_input"])
 	measurements_output = json.loads(config[name]["measurements_output"])
-	col_names_timestamp = json.loads(config[name]["measurements_timestamp"])
 	col_names_input = [f'{location}.{v_name}' for v_name in measurements_input]
 	col_names_output = [f'{location}.{v_name}' for v_name in measurements_output]
 
-	df_time = df_input[col_names_timestamp]
 	df_in = df_input[col_names_input]
 	df_out = df_input[col_names_output]
 
 	logger.info_end(f"Done in {timer}")
 
-	return df_time, df_in, df_out
+	return df_in, df_out
 
 
 def select_columns_2(df_input: pd.DataFrame, a_cols: List[str], b_cols: List[str]) -> (pd.DataFrame, pd.DataFrame):
